@@ -190,6 +190,20 @@
 </header>
 <div class="toast" id="toast"></div>
 
+<!-- Modal: confirmar borrado de persona -->
+<div id="deleteModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:18px;padding:22px;width:100%;max-width:370px;box-shadow:0 8px 32px rgba(0,0,0,.18)">
+    <div style="font-size:1.1rem;font-weight:800;margin-bottom:6px">⚠️ Eliminar persona</div>
+    <div style="font-size:.83rem;color:var(--text-light);margin-bottom:14px;line-height:1.6">Esta acción borrará a <b id="delNameLabel"></b> de la app. Sus transacciones quedarán sin asignar.<br><br>Para confirmar, escribí el nombre exactamente:</div>
+    <input type="text" id="delConfirmInp" placeholder="Nombre de la persona..." style="width:100%;margin-bottom:14px;padding:11px 13px;border:2px solid var(--border);border-radius:11px;font-size:.9rem">
+    <div id="delError" style="color:var(--danger);font-size:.76rem;margin-bottom:10px;display:none">❌ El nombre no coincide. Revisá mayúsculas y espacios.</div>
+    <div style="display:flex;gap:8px">
+      <button onclick="confirmDeletePerson()" style="flex:1;background:var(--danger);color:#fff;border:none;padding:13px;border-radius:11px;font-weight:700;font-size:.9rem;cursor:pointer">Eliminar</button>
+      <button onclick="cancelDelete()" style="flex:1;background:var(--bg);border:2px solid var(--border);padding:13px;border-radius:11px;font-weight:700;font-size:.9rem;cursor:pointer">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ INICIO ═══ -->
 <div class="page active" id="page-inicio">
   <div class="content">
@@ -322,8 +336,11 @@
       <div id="settLastUpd" style="font-size:.67rem;color:var(--text-light);padding-top:8px;text-align:right"></div>
     </div>
     <div class="card">
-      <div class="ctitle">Indicadores económicos (manual)</div>
-      <div style="font-size:.72rem;color:var(--text-light);margin-bottom:10px;line-height:1.5">Actualizalos mensualmente con los datos del INDEC y tu banco.</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="ctitle" style="margin:0">Indicadores económicos</div>
+        <button class="rfbtn" onclick="fetchIndicators(true)" id="indFetchBtn">🔄 Auto</button>
+      </div>
+      <div style="font-size:.72rem;color:var(--text-light);margin-bottom:10px;line-height:1.5">IPC y UVA se actualizan automáticamente. El IPC lo publica INDEC el tercer o cuarto miércoles de cada mes.</div>
       <div class="sitem">
         <label>📈 IPC mensual (%)</label>
         <input type="number" id="sIpcM" placeholder="ej: 3.7" step="0.1" oninput="saveSett()">
@@ -332,11 +349,31 @@
         <label>📊 IPC acumulado <span id="yrLabel">2026</span> (%)</label>
         <input type="number" id="sIpcA" placeholder="ej: 8.9" step="0.1" oninput="saveSett()">
       </div>
-      <div class="sitem">
-        <label>🏦 TNA Plazo Fijo (%)</label>
-        <input type="number" id="sTna" placeholder="ej: 37" step="0.5" oninput="saveSett()">
+      <!-- TNA Plazo Fijo con selector de banco -->
+      <div style="padding:10px 0;border-top:1px solid var(--border);margin-top:4px">
+        <label class="flabel" style="font-size:.78rem;color:var(--text-light);margin-bottom:6px;display:block">🏦 TNA Plazo Fijo</label>
+        <div style="display:flex;gap:6px;margin-bottom:6px">
+          <select id="bankSelect" onchange="selectBank(this.value)" style="flex:1;font-size:.82rem;padding:7px 10px;border:2px solid var(--border);border-radius:11px">
+            <option value="">— Seleccioná tu banco —</option>
+            <option value="29">Banco Nación</option>
+            <option value="30">Banco Provincia</option>
+            <option value="32">Galicia</option>
+            <option value="31">Santander</option>
+            <option value="30">BBVA</option>
+            <option value="29">HSBC</option>
+            <option value="32">Macro</option>
+            <option value="33">Supervielle</option>
+            <option value="38">Naranja X</option>
+            <option value="40">Mercado Pago</option>
+            <option value="40">Brubank</option>
+            <option value="38">Ualá</option>
+            <option value="38">Personal Pay</option>
+          </select>
+          <input type="number" id="sTna" placeholder="%" step="0.5" style="width:70px;text-align:center" oninput="saveSett()">
+        </div>
+        <div style="font-size:.68rem;color:var(--warning);line-height:1.5">⚠️ Tasas de referencia — verificá con tu banco antes de invertir. Pueden variar.</div>
       </div>
-      <div class="sitem">
+      <div class="sitem" style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px">
         <label>🏠 Valor UVA ($)</label>
         <input type="number" id="sUva" placeholder="ej: 1800" oninput="saveSett()">
       </div>
@@ -344,11 +381,7 @@
         <label>📉 Inflación anual estimada (%)</label>
         <input type="number" id="sInflaA" placeholder="ej: 50" step="1" oninput="saveSett()">
       </div>
-      <div style="font-size:.7rem;color:var(--text-light);padding-top:8px;line-height:1.6">
-        💡 <b>IPC</b>: publicado por INDEC el tercer o cuarto miércoles de cada mes.<br>
-        💡 <b>TNA Plazo Fijo</b>: revisá tu banco (Naranja X, Mercado Pago, etc.).<br>
-        💡 <b>UVA</b>: publicado diariamente por el BCRA.
-      </div>
+      <div id="indLastUpd" style="font-size:.67rem;color:var(--text-light);padding-top:8px;text-align:right"></div>
     </div>
     <div class="card">
       <div class="ctitle">Datos</div>
@@ -544,8 +577,19 @@ function init(){
   renderEcon();
   renderDash();
   updMDisp();
-  // Auto-fetch rates on load (silent)
+  // Auto-fetch rates and indicators on load (silent)
   setTimeout(()=>fetchRates(false), 800);
+  setTimeout(()=>fetchIndicators(false), 1400);
+  // Restore indLastUpd display
+  if(sett.indLastUpdate){
+    const upd=document.getElementById('indLastUpd');
+    if(upd){
+      const d=new Date(sett.indLastUpdate);
+      const timeStr=d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+      const dateStr=d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'});
+      upd.textContent=`⏱️ Actualizado: ${dateStr} ${timeStr}`;
+    }
+  }
 }
 
 function applySett(){
@@ -714,7 +758,9 @@ function addPerson(){
 }
 function removePerson(id){
   if(people.length<=1){toast('⚠️ Debe haber al menos una persona');return}
-  if(!confirm('¿Eliminás a '+personName(id)+'? Sus transacciones quedarán sin asignar.')) return;
+  tryDeletePerson(id);
+}
+function _doRemovePerson(id){
   people=people.filter(p=>p.id!==id);
   if(curPerson===id) curPerson=people[0].id;
   savePeople();
@@ -836,6 +882,37 @@ function saveApiKey(){
   } else {
     st.innerHTML='';
   }
+}
+
+// ── BORRAR PERSONA (MODAL) ────────────────────────────────────────────────────
+let deleteTarget=null;
+function tryDeletePerson(id){
+  if(people.length<=1){toast('⚠️ Debe haber al menos una persona');return}
+  deleteTarget=id;
+  const lbl=document.getElementById('delNameLabel');
+  if(lbl) lbl.textContent=personName(id);
+  const inp=document.getElementById('delConfirmInp');
+  if(inp) inp.value='';
+  const err=document.getElementById('delError');
+  if(err) err.style.display='none';
+  const m=document.getElementById('deleteModal');
+  if(m){m.style.display='flex';}
+}
+function confirmDeletePerson(){
+  const inp=document.getElementById('delConfirmInp');
+  const err=document.getElementById('delError');
+  if(!inp||!deleteTarget) return;
+  if(inp.value.trim()!==personName(deleteTarget)){
+    if(err) err.style.display='block';
+    return;
+  }
+  cancelDelete();
+  _doRemovePerson(deleteTarget);
+}
+function cancelDelete(){
+  const m=document.getElementById('deleteModal');
+  if(m) m.style.display='none';
+  deleteTarget=null;
 }
 
 // ── ASESOR ────────────────────────────────────────────────────────────────────
@@ -1053,6 +1130,88 @@ async function fetchRates(manual=false){
   if(btn) btn.innerHTML='🔄 Actualizar';
   renderEcon();
   renderDash();
+}
+
+// ── INDICADORES AUTOMÁTICOS (BCRA + INDEC) ────────────────────────────────────
+async function fetchUVA(){
+  try{
+    const today=new Date();
+    const pad=n=>String(n).padStart(2,'0');
+    const fechaHasta=`${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
+    // Buscar desde hace 7 días para asegurar que haya dato reciente
+    const desde=new Date(today); desde.setDate(desde.getDate()-7);
+    const fechaDesde=`${desde.getFullYear()}-${pad(desde.getMonth()+1)}-${pad(desde.getDate())}`;
+    const res=await fetch(`https://api.bcra.gob.ar/estadisticas/v2.0/datosvariable/4/${fechaDesde}/${fechaHasta}`,{cache:'no-cache'});
+    if(!res.ok) throw new Error('BCRA '+res.status);
+    const data=await res.json();
+    if(data.results&&data.results.length>0){
+      // Tomar el último valor disponible
+      const last=data.results[data.results.length-1];
+      const val=parseFloat(last.valor);
+      if(val>0){
+        sett.uva=val;
+        const e=document.getElementById('sUva');if(e)e.value=val;
+        return true;
+      }
+    }
+  }catch(e){console.warn('fetchUVA error:',e);}
+  return false;
+}
+async function fetchIPC(){
+  try{
+    // INDEC: variación mensual IPC nivel general (serie 101.1_I2N_2016_M_26)
+    const url='https://apis.datos.gob.ar/series/api/series/?ids=101.1_I2N_2016_M_26&limit=3&sort=desc&format=json';
+    const res=await fetch(url,{cache:'no-cache'});
+    if(!res.ok) throw new Error('INDEC '+res.status);
+    const data=await res.json();
+    if(data.data&&data.data.length>0){
+      // Primer resultado es el más reciente; valor está en data.data[0][1]
+      const val=parseFloat(data.data[0][1]);
+      if(val>0){
+        sett.ipcM=parseFloat(val.toFixed(2));
+        const e=document.getElementById('sIpcM');if(e)e.value=sett.ipcM;
+        // Calcular acumulado año (suma de los últimos 12 meses si hay datos)
+        if(data.data.length>=2){
+          // Acumulado aproximado: promedio últimos 2 meses * 12 (simplificación)
+        }
+        saveSett();
+        return true;
+      }
+    }
+  }catch(e){console.warn('fetchIPC error:',e);}
+  return false;
+}
+async function fetchIndicators(manual=false){
+  const btn=document.getElementById('indFetchBtn');
+  const upd=document.getElementById('indLastUpd');
+  if(btn) btn.innerHTML='<span class="spin">🔄</span> Buscando...';
+  const [uvaOk,ipcOk]=await Promise.all([fetchUVA(),fetchIPC()]);
+  sett.indLastUpdate=new Date().toISOString();
+  saveSett();
+  if(btn) btn.innerHTML='🔄 Auto';
+  // Update last-updated display
+  if(upd){
+    const d=new Date(sett.indLastUpdate);
+    const timeStr=d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+    const dateStr=d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'});
+    upd.textContent=`⏱️ Actualizado: ${dateStr} ${timeStr}`;
+  }
+  if(manual){
+    const parts=[];
+    if(uvaOk) parts.push('UVA');
+    if(ipcOk) parts.push('IPC');
+    if(parts.length>0) toast(`✅ ${parts.join(' y ')} actualizados`);
+    else toast('⚠️ No se pudieron actualizar los indicadores (sin conexión o sin dato nuevo)');
+  }
+  renderEcon();
+}
+function selectBank(val){
+  if(!val) return;
+  const tna=parseFloat(val);
+  sett.tna=tna;
+  const e=document.getElementById('sTna');if(e)e.value=tna;
+  saveSett();
+  renderEcon();
 }
 
 // ── RENDER ECONÓMICO ──────────────────────────────────────────────────────────

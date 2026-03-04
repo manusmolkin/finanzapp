@@ -1,5 +1,5 @@
 // FinanzApp Service Worker — hace que la app funcione offline
-const CACHE = 'finanzapp-v6';
+const CACHE = 'finanzapp-v7';
 const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 // Instalar: guarda todos los archivos en caché
