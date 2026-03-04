@@ -148,6 +148,15 @@
     /* Badge */
     .badge{display:inline-block;border-radius:20px;padding:1px 7px;font-size:.68rem;font-weight:700}
     .badge-red{background:#fee2e2;color:var(--danger)}.badge-green{background:#d1fae5;color:#065f46}.badge-yellow{background:#fef3c7;color:#92400e}
+
+    /* Currency pills */
+    .cpills{display:flex;gap:5px;margin-top:9px;flex-wrap:wrap}
+    .cpill{padding:6px 12px;border-radius:20px;border:2px solid var(--border);font-size:.8rem;font-weight:700;cursor:pointer;background:#fff;color:var(--text-light);transition:all .2s;white-space:nowrap}
+    .cpill.active{background:var(--primary);border-color:var(--primary);color:#fff}
+    /* Conversion preview */
+    .conv-prev{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:9px 13px;margin-top:7px;font-size:.88rem;font-weight:700;color:#166534}
+    .conv-prev.warn{background:#fff7ed;border-color:#fed7aa;color:#92400e}
+    .conv-prev.loading{background:var(--bg);border-color:var(--border);color:var(--text-light)}
   </style>
 </head>
 <body>
@@ -199,8 +208,10 @@
       </div>
     </div>
     <div class="fgroup">
-      <label class="flabel">Monto (ARS $)</label>
-      <input type="number" class="ainput" id="inpAmt" placeholder="0" min="0" inputmode="decimal">
+      <label class="flabel">Monto</label>
+      <input type="number" class="ainput" id="inpAmt" placeholder="0" min="0" inputmode="decimal" oninput="updateConvPreview()">
+      <div class="cpills" id="curPills"></div>
+      <div class="conv-prev" id="convPreview" style="display:none"></div>
     </div>
     <div class="fgroup">
       <label class="flabel">¿De quién?</label>
@@ -291,6 +302,14 @@
       <div class="sitem"><label>Oficial (venta)</label><input type="number" id="sROf" placeholder="1400" oninput="saveSett()"></div>
       <div class="sitem"><label>Blue (venta)</label><input type="number" id="sRBl" placeholder="1450" oninput="saveSett()"></div>
       <div class="sitem"><label>MEP / Bolsa (venta)</label><input type="number" id="sRMep" placeholder="1430" oninput="saveSett()"></div>
+      <div class="sitem">
+        <label>💱 Tasa para conversiones</label>
+        <select id="sConvType" style="width:130px;font-size:.86rem;padding:7px 10px;border:2px solid var(--border);border-radius:11px" onchange="saveSett()">
+          <option value="blue">Dólar Blue</option>
+          <option value="oficial">Dólar Oficial</option>
+          <option value="mep">Dólar MEP</option>
+        </select>
+      </div>
       <div id="settLastUpd" style="font-size:.67rem;color:var(--text-light);padding-top:8px;text-align:right"></div>
     </div>
     <div class="card">
@@ -365,13 +384,25 @@ const CATS = {
 };
 const CCOLORS = ['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#84cc16','#ec4899','#14b8a6','#a855f7','#eab308','#64748b','#22d3ee'];
 
+const CURRENCIES = [
+  {code:'ARS', sym:'$',    name:'Peso argentino'},
+  {code:'USD', sym:'U$S',  name:'Dólar EE.UU.'},
+  {code:'EUR', sym:'€',    name:'Euro'},
+  {code:'BRL', sym:'R$',   name:'Real brasileño'},
+  {code:'UYU', sym:'$U',   name:'Peso uruguayo'},
+  {code:'CLP', sym:'CLP$', name:'Peso chileno'},
+  {code:'GBP', sym:'£',    name:'Libra esterlina'},
+];
+
 // ── ESTADO ───────────────────────────────────────────────────────────────────
-let curMonth, hFilter='all', curType='gasto', curPerson='manu';
+let curMonth, hFilter='all', curType='gasto', curPerson='manu', curCurrency='ARS';
+let fxCache={}; // cache para tasas de frankfurter.app (pares no-ARS/USD)
 let txs=[], sett={
   name1:'Manu', name2:'Cande',
   income1:0, income2:0,
   rateOf:1400, rateBl:1450, rateMep:0,
-  ipcM:0, ipcA:0, tna:0, uva:0, inflaA:0
+  ipcM:0, ipcA:0, tna:0, uva:0, inflaA:0,
+  convType:'blue'
 };
 let econ={
   blue:{c:0,v:0}, oficial:{c:0,v:0}, mep:{c:0,v:0},
@@ -391,6 +422,7 @@ function init(){
   document.getElementById('yrLabel').textContent=n.getFullYear();
   populateCats();
   applySett();
+  renderCurPills();
   renderEcon();
   renderDash();
   updMDisp();
@@ -404,6 +436,7 @@ function applySett(){
   document.getElementById('nl1').textContent=sett.name1;
   document.getElementById('nl2').textContent=sett.name2;
   ['sIL1','sIL2','fn1','fn2'].forEach((id,i)=>{const e=document.getElementById(id);if(e)e.textContent=[sett.name1,sett.name2,sett.name1,sett.name2][i]});
+  const sConv=document.getElementById('sConvType');if(sConv)sConv.value=sett.convType||'blue';
 }
 
 function saveSett(){
@@ -419,6 +452,7 @@ function saveSett(){
   sett.tna=parseFloat(document.getElementById('sTna').value)||0;
   sett.uva=parseFloat(document.getElementById('sUva').value)||0;
   sett.inflaA=parseFloat(document.getElementById('sInflaA').value)||0;
+  sett.convType=document.getElementById('sConvType')?.value||'blue';
   localStorage.setItem('fa_sett',JSON.stringify(sett));
   applySett();
   renderEcon();
@@ -470,6 +504,57 @@ function setPerson(p){
     if(el) el.className='pbtn'+(p===x?' '+clsMap[x]:'');
   });
 }
+// ── MONEDAS ───────────────────────────────────────────────────────────────────
+function renderCurPills(){
+  const el=document.getElementById('curPills');if(!el)return;
+  el.innerHTML=CURRENCIES.map(c=>
+    `<button class="cpill${curCurrency===c.code?' active':''}" onclick="setCurrency('${c.code}')" title="${c.name}">${c.sym} ${c.code}</button>`
+  ).join('');
+}
+function setCurrency(code){
+  curCurrency=code;
+  renderCurPills();
+  updateConvPreview();
+}
+async function getConvRate(fromCur){
+  // Retorna: cuántos ARS vale 1 unidad de fromCur
+  if(fromCur==='ARS') return 1;
+  const ct=sett.convType||'blue';
+  const usdArs=(ct==='oficial'?sett.rateOf:ct==='mep'?sett.rateMep:sett.rateBl)||1450;
+  if(fromCur==='USD') return usdArs;
+  // Para otras monedas: frankfurter.app → fromCur a USD, luego × usdArs
+  if(fxCache[fromCur]) return fxCache[fromCur]*usdArs;
+  try{
+    const res=await fetch(`https://api.frankfurter.app/latest?from=${fromCur}&to=USD`,{cache:'no-cache'});
+    const data=await res.json();
+    if(data.rates&&data.rates.USD){
+      fxCache[fromCur]=data.rates.USD;
+      return fxCache[fromCur]*usdArs;
+    }
+  }catch(e){}
+  return null;
+}
+async function updateConvPreview(){
+  const amt=parseFloat(document.getElementById('inpAmt').value);
+  const prev=document.getElementById('convPreview');
+  if(!prev)return;
+  if(!amt||amt<=0||curCurrency==='ARS'){prev.style.display='none';return;}
+  prev.style.display='block';
+  prev.className='conv-prev loading';
+  prev.textContent='⏳ Calculando...';
+  const rate=await getConvRate(curCurrency);
+  if(!rate){
+    prev.className='conv-prev warn';
+    prev.textContent='⚠️ Sin cotización disponible. Revisá la conexión.';
+    return;
+  }
+  const inArs=amt*rate;
+  const cur=CURRENCIES.find(c=>c.code===curCurrency);
+  const typeLabel={oficial:'oficial',mep:'MEP',blue:'blue'}[sett.convType||'blue'];
+  prev.className='conv-prev';
+  prev.innerHTML=`≈ ${fARS(inArs)} ARS <span style="font-weight:400;font-size:.76rem;color:#166534">(dólar ${typeLabel})</span>`;
+}
+
 function populateCats(type){
   const sel=document.getElementById('selCat');
   sel.innerHTML='<option value="">Seleccioná una categoría...</option>';
@@ -484,21 +569,34 @@ function updSub(){
   if(!cat||!CATS[cat]){sub.innerHTML='<option value="">Primero elegí una categoría</option>';return}
   CATS[cat].forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;sub.appendChild(o)});
 }
-function saveTx(){
-  const amt=parseFloat(document.getElementById('inpAmt').value);
+async function saveTx(){
+  const rawAmt=parseFloat(document.getElementById('inpAmt').value);
   const cat=document.getElementById('selCat').value;
   const sub=document.getElementById('selSub').value;
   const dt=document.getElementById('inpDate').value;
   const note=document.getElementById('inpNote').value.trim();
-  if(!amt||amt<=0){toast('⚠️ Ingresá un monto válido');return}
+  if(!rawAmt||rawAmt<=0){toast('⚠️ Ingresá un monto válido');return}
   if(!cat){toast('⚠️ Elegí una categoría');return}
   if(!dt){toast('⚠️ Elegí una fecha');return}
-  txs.push({id:Date.now().toString(),date:dt,type:curType,amount:amt,person:curPerson,category:cat,subcategory:sub||'',note});
+
+  let arsAmt=rawAmt, origAmt=null, origCur=null;
+  if(curCurrency!=='ARS'){
+    const rate=await getConvRate(curCurrency);
+    if(!rate){toast('⚠️ No se pudo convertir la moneda. Revisá la conexión.');return}
+    arsAmt=rawAmt*rate;
+    origAmt=rawAmt;
+    origCur=curCurrency;
+  }
+
+  txs.push({id:Date.now().toString(),date:dt,type:curType,amount:arsAmt,origAmt,origCur,person:curPerson,category:cat,subcategory:sub||'',note});
   localStorage.setItem('fa_tx',JSON.stringify(txs));
   document.getElementById('inpAmt').value='';
   document.getElementById('inpNote').value='';
   document.getElementById('selCat').value='';
   document.getElementById('selSub').innerHTML='<option value="">Primero elegí una categoría</option>';
+  // Reset currency to ARS
+  curCurrency='ARS';renderCurPills();
+  document.getElementById('convPreview').style.display='none';
   toast('✅ ¡Guardado!');showPage('inicio');
 }
 
@@ -696,6 +794,7 @@ function txItem(t,del=false){
     </div>
     <div class="txamt">
       <div class="amt ${t.type}">${t.type==='gasto'?'-':'+'}${fARS(t.amount)}</div>
+      ${t.origCur&&t.origCur!=='ARS'?`<div style="font-size:.64rem;color:var(--text-light);text-align:right">${CURRENCIES.find(c=>c.code===t.origCur)?.sym||t.origCur} ${t.origAmt}</div>`:''}
       ${del?`<button class="delbtn" onclick="delTx('${t.id}')">✕</button>`:'<div class="dt">'+df+'</div>'}
     </div>
   </div>`;
