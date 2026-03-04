@@ -906,8 +906,9 @@ function confirmDeletePerson(){
     if(err) err.style.display='block';
     return;
   }
+  const idToDelete=deleteTarget; // guardar antes de que cancelDelete lo limpie
   cancelDelete();
-  _doRemovePerson(deleteTarget);
+  _doRemovePerson(idToDelete);
 }
 function cancelDelete(){
   const m=document.getElementById('deleteModal');
