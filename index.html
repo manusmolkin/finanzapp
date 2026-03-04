@@ -26,9 +26,9 @@
     /* Content & Nav */
     .content{padding:13px;padding-bottom:calc(var(--nav-h) + 13px)}
     .bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;height:var(--nav-h);background:var(--card);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-around;z-index:100;box-shadow:0 -4px 20px rgba(0,0,0,.08)}
-    .nitem{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 4px;cursor:pointer;border:none;background:none;color:var(--text-light);font-size:.6rem;font-weight:600;transition:color .2s}
-    .nitem.active{color:var(--primary)}.nicon{font-size:1.3rem;line-height:1}
-    .nitem.add-btn .nicon{background:var(--primary);color:#fff;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.55rem;box-shadow:0 4px 14px rgba(79,70,229,.45);margin-top:-6px}
+    .nitem{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 2px;cursor:pointer;border:none;background:none;color:var(--text-light);font-size:.54rem;font-weight:600;transition:color .2s}
+    .nitem.active{color:var(--primary)}.nicon{font-size:1.18rem;line-height:1}
+    .nitem.add-btn .nicon{background:var(--primary);color:#fff;width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.4rem;box-shadow:0 4px 14px rgba(79,70,229,.45);margin-top:-5px}
 
     /* Cards */
     .card{background:var(--card);border-radius:16px;padding:14px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
@@ -150,6 +150,30 @@
     .badge-red{background:#fee2e2;color:var(--danger)}.badge-green{background:#d1fae5;color:#065f46}.badge-yellow{background:#fef3c7;color:#92400e}
 
     /* Currency pills */
+    /* Chat */
+    .chatbox{height:320px;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
+    .chatbox::-webkit-scrollbar{width:3px}.chatbox::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+    .cmsg{max-width:84%;padding:10px 13px;border-radius:16px;font-size:.85rem;line-height:1.55;word-break:break-word;white-space:pre-wrap}
+    .cmsg.user{background:var(--primary);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+    .cmsg.assistant{background:var(--bg);color:var(--text);align-self:flex-start;border-bottom-left-radius:4px;border:1px solid var(--border)}
+    .cmsg.typing{color:var(--text-light);font-style:italic;background:var(--bg);align-self:flex-start;border:1px solid var(--border);border-radius:16px;border-bottom-left-radius:4px}
+    .chat-input{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--border);background:#fff}
+    .chat-input input{flex:1;padding:9px 13px;border-radius:20px;font-size:.9rem;border:2px solid var(--border)}
+    .chat-input input:focus{border-color:var(--primary);outline:none}
+    .chat-send{background:var(--primary);color:#fff;border:none;border-radius:50%;width:38px;height:38px;font-size:1.1rem;cursor:pointer;flex-shrink:0;transition:transform .1s}
+    .chat-send:active{transform:scale(.92)}
+    /* Goals */
+    .goal-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+    .goal-item:last-child{border-bottom:none}
+    .goal-icon{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;background:var(--bg)}
+    .goal-info{flex:1;min-width:0}
+    .goal-info .gtitle{font-size:.88rem;font-weight:700;line-height:1.3}
+    .goal-info .gsub{font-size:.71rem;color:var(--text-light);margin-top:2px}
+    .goal-info .gneed{font-size:.75rem;font-weight:700;color:var(--primary);margin-top:4px}
+    /* Quick chips */
+    .qchips{display:flex;gap:6px;flex-wrap:wrap;padding:0 12px 10px}
+    .qchip{padding:7px 12px;border-radius:20px;background:#fff;border:1.5px solid var(--border);font-size:.76rem;cursor:pointer;color:var(--text);white-space:nowrap;transition:all .15s}
+    .qchip:active{background:var(--primary);color:#fff;border-color:var(--primary)}
     /* Currency select */
     #selCur{width:auto;margin-top:8px;font-size:.88rem;padding:8px 12px;font-weight:600;color:var(--primary);border-color:var(--primary)}
     /* Conversion preview */
@@ -345,6 +369,17 @@
       <div class="sitem"><label>Exportar backup (JSON)</label><button class="btnout" onclick="expData()">Exportar</button></div>
       <div class="sitem"><label>Importar backup (JSON)</label><button class="btnout" onclick="document.getElementById('impFile').click()">Importar</button><input type="file" id="impFile" accept=".json" style="display:none" onchange="impData(event)"></div>
     </div>
+    <div class="card">
+      <div class="ctitle">🤖 API Key — Asesor con Claude</div>
+      <div style="font-size:.72rem;color:var(--text-light);margin-bottom:10px;line-height:1.5">
+        Conseguí tu API key gratis en <b>platform.anthropic.com</b>. Se guarda solo en este dispositivo y nunca se comparte.
+      </div>
+      <div class="sitem" style="flex-direction:column;align-items:flex-start;gap:8px">
+        <label>API Key de Anthropic</label>
+        <input type="password" id="sApiKey" placeholder="sk-ant-..." oninput="saveApiKey()" style="width:100%;font-family:monospace;font-size:.8rem">
+      </div>
+      <div id="apiKeyStatus" style="font-size:.72rem;margin-top:6px;padding:4px 0"></div>
+    </div>
     <button class="btnd" onclick="clearData()">🗑️ Borrar todos los datos</button>
     <p style="text-align:center;color:var(--text-light);font-size:.68rem;margin-top:16px;line-height:1.7">
       💾 Tus datos se guardan solo en este dispositivo<br>
@@ -354,12 +389,97 @@
   </div>
 </div>
 
+<!-- ═══ ASESOR ═══ -->
+<div class="page" id="page-asesor">
+  <div class="content">
+
+    <!-- API key missing warning -->
+    <div id="apiWarn" class="card" style="display:none;background:#fff7ed;border:1.5px solid #fed7aa">
+      <div style="font-size:.88rem;font-weight:700;color:#c2410c;margin-bottom:6px">🔑 Configurá tu API key</div>
+      <div style="font-size:.78rem;color:#92400e;line-height:1.6">Para usar el asesor, necesitás una API key de Anthropic. Es gratis al registrarte (~$5 de crédito inicial).<br><br>
+      1. Entrá a <b>platform.anthropic.com</b><br>
+      2. Creá una cuenta y generá una API key<br>
+      3. Pegala en <b>⚙️ Ajustes → API Key</b></div>
+      <button class="btnp" style="margin-top:12px;padding:10px" onclick="showPage('ajustes')">Ir a Ajustes →</button>
+    </div>
+
+    <!-- Goals card -->
+    <div class="card" id="goalsCard">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="ctitle" style="margin:0">🎯 Mis objetivos</div>
+        <button class="rfbtn" onclick="toggleAddGoal()">+ Agregar</button>
+      </div>
+      <div id="goalsList"><div style="font-size:.78rem;color:var(--text-light);padding:6px 0">Todavía no tenés objetivos. ¡Agregá uno para que Claude los tenga en cuenta!</div></div>
+    </div>
+
+    <!-- Add goal form -->
+    <div class="card" id="addGoalForm" style="display:none">
+      <div class="ctitle">Nueva meta</div>
+      <div class="fgroup">
+        <label class="flabel">Tipo</label>
+        <select id="gType">
+          <option value="✈️ Viaje">✈️ Viaje</option>
+          <option value="🚗 Auto">🚗 Auto</option>
+          <option value="🏠 Casa / Mudanza">🏠 Casa / Mudanza</option>
+          <option value="💰 Ahorro general">💰 Ahorro general</option>
+          <option value="📚 Educación">📚 Educación</option>
+          <option value="👶 Familia">👶 Familia</option>
+          <option value="💼 Negocio">💼 Negocio</option>
+          <option value="🎯 Otro">🎯 Otro</option>
+        </select>
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Descripción</label>
+        <input type="text" id="gDesc" placeholder="Ej: Viaje a Europa con Cande">
+      </div>
+      <div class="fgroup" style="display:flex;gap:8px">
+        <div style="flex:1"><label class="flabel">Monto objetivo</label><input type="number" id="gAmount" placeholder="0" inputmode="decimal"></div>
+        <div style="width:110px"><label class="flabel">Moneda</label>
+          <select id="gCur"><option value="ARS">$ ARS</option><option value="USD">U$S USD</option><option value="EUR">€ EUR</option></select>
+        </div>
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Plazo (meses)</label>
+        <input type="number" id="gMonths" placeholder="Ej: 12" min="1">
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btnp" onclick="saveGoal()">✓ Guardar meta</button>
+        <button class="btnd" style="width:auto;padding:14px 18px" onclick="toggleAddGoal()">✕</button>
+      </div>
+    </div>
+
+    <!-- Chat card -->
+    <div class="card" style="padding:0;overflow:hidden" id="chatCard">
+      <div style="padding:12px 14px 0;display:flex;align-items:center;justify-content:space-between">
+        <div class="ctitle" style="margin:0">🤖 Asesor financiero</div>
+        <button class="rfbtn" onclick="clearChat()">🗑 Limpiar</button>
+      </div>
+      <!-- Quick chips -->
+      <div class="qchips" id="quickChips">
+        <button class="qchip" onclick="sendQuick('¿Cómo estoy con mis finanzas este mes?')">¿Cómo voy este mes?</button>
+        <button class="qchip" onclick="sendQuick('¿En qué categoría debería recortar gastos para ahorrar más?')">¿Dónde recortar?</button>
+        <button class="qchip" onclick="sendQuick('¿Cómo me conviene ahorrar e invertir en Argentina hoy?')">¿Dónde invertir?</button>
+        <button class="qchip" onclick="sendQuick('¿Cómo puedo llegar a mis objetivos financieros?')">¿Cómo llego a mis metas?</button>
+      </div>
+      <div class="chatbox" id="chatMsgs">
+        <div class="cmsg assistant">¡Hola! Soy tu asesor financiero personal 👋 Tengo acceso a tus ingresos, gastos y objetivos para darte consejos adaptados a tu situación. ¿En qué te puedo ayudar hoy?</div>
+      </div>
+      <div class="chat-input">
+        <input type="text" id="chatInp" placeholder="Escribí tu pregunta..." onkeydown="if(event.key==='Enter')sendMessage()">
+        <button class="chat-send" onclick="sendMessage()">➤</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 <!-- Bottom Nav -->
 <nav class="bnav">
   <button class="nitem active" id="nav-inicio" onclick="showPage('inicio')"><span class="nicon">🏠</span><span>Inicio</span></button>
   <button class="nitem" id="nav-historial" onclick="showPage('historial')"><span class="nicon">📋</span><span>Historial</span></button>
   <button class="nitem add-btn" id="nav-agregar" onclick="showPage('agregar')"><span class="nicon">＋</span><span>Agregar</span></button>
   <button class="nitem" id="nav-reportes" onclick="showPage('reportes')"><span class="nicon">📊</span><span>Reportes</span></button>
+  <button class="nitem" id="nav-asesor" onclick="showPage('asesor')"><span class="nicon">🤖</span><span>Asesor</span></button>
   <button class="nitem" id="nav-ajustes" onclick="showPage('ajustes')"><span class="nicon">⚙️</span><span>Ajustes</span></button>
 </nav>
 
@@ -396,6 +516,7 @@ const CURRENCIES = [
 // ── ESTADO ───────────────────────────────────────────────────────────────────
 let curMonth, hFilter='all', curType='gasto', curPerson='manu', curCurrency='ARS';
 let fxCache={}; // cache para tasas de frankfurter.app (pares no-ARS/USD)
+let goals=[], chatHistory=[], chatBusy=false;
 let txs=[], sett={
   name1:'Manu', name2:'Cande',
   income1:0, income2:0,
@@ -411,10 +532,14 @@ let econ={
 
 // ── INIT ─────────────────────────────────────────────────────────────────────
 function init(){
-  const st=localStorage.getItem('fa_tx'), ss=localStorage.getItem('fa_sett'), se=localStorage.getItem('fa_econ');
+  const st=localStorage.getItem('fa_tx'), ss=localStorage.getItem('fa_sett'), se=localStorage.getItem('fa_econ'), sg=localStorage.getItem('fa_goals');
   if(st) try{txs=JSON.parse(st)}catch(e){}
   if(ss) try{sett={...sett,...JSON.parse(ss)}}catch(e){}
   if(se) try{econ={...econ,...JSON.parse(se)}}catch(e){}
+  if(sg) try{goals=JSON.parse(sg)}catch(e){}
+  // Load API key separately (not in sett to avoid export exposure)
+  const ak=localStorage.getItem('fa_key');
+  if(ak){sett.apiKey=ak; const el=document.getElementById('sApiKey');if(el)el.value=ak;}
   const n=new Date();
   curMonth=`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`;
   document.getElementById('inpDate').value=n.toISOString().split('T')[0];
@@ -463,11 +588,12 @@ function showPage(p){
   document.querySelectorAll('.nitem').forEach(x=>x.classList.remove('active'));
   document.getElementById(`page-${p}`).classList.add('active');
   document.getElementById(`nav-${p}`).classList.add('active');
-  const titles={inicio:'💰 FinanzApp',agregar:'➕ Agregar',historial:'📋 Historial',reportes:'📊 Reportes',ajustes:'⚙️ Ajustes'};
+  const titles={inicio:'💰 FinanzApp',agregar:'➕ Agregar',historial:'📋 Historial',reportes:'📊 Reportes',asesor:'🤖 Asesor',ajustes:'⚙️ Ajustes'};
   document.getElementById('hdrTitle').textContent=titles[p];
   if(p==='inicio'){renderDash();renderEcon()}
   if(p==='historial') renderHist();
   if(p==='reportes') renderRep();
+  if(p==='asesor') renderAsesor();
   updMDisp();
 }
 
@@ -603,6 +729,206 @@ async function saveTx(){
   const selCur=document.getElementById('selCur');if(selCur)selCur.value='ARS';
   document.getElementById('convPreview').style.display='none';
   toast('✅ ¡Guardado!');showPage('inicio');
+}
+
+// ── API KEY ───────────────────────────────────────────────────────────────────
+function saveApiKey(){
+  const val=document.getElementById('sApiKey').value.trim();
+  sett.apiKey=val;
+  localStorage.setItem('fa_key',val);
+  const st=document.getElementById('apiKeyStatus');
+  if(!st)return;
+  if(val.startsWith('sk-ant-')&&val.length>20){
+    st.innerHTML='<span style="color:var(--secondary)">✅ API key guardada</span>';
+  } else if(val.length>0){
+    st.innerHTML='<span style="color:var(--warning)">⚠️ Parece que la key no tiene el formato correcto (debe empezar con sk-ant-)</span>';
+  } else {
+    st.innerHTML='';
+  }
+}
+
+// ── ASESOR ────────────────────────────────────────────────────────────────────
+function renderAsesor(){
+  const hasKey=sett.apiKey&&sett.apiKey.startsWith('sk-ant-');
+  const warn=document.getElementById('apiWarn');
+  if(warn) warn.style.display=hasKey?'none':'block';
+  renderGoals();
+}
+
+// GOALS
+function toggleAddGoal(){
+  const f=document.getElementById('addGoalForm');
+  f.style.display=f.style.display==='none'?'block':'none';
+}
+function saveGoal(){
+  const type=document.getElementById('gType').value;
+  const desc=document.getElementById('gDesc').value.trim();
+  const amount=parseFloat(document.getElementById('gAmount').value);
+  const currency=document.getElementById('gCur').value;
+  const months=parseInt(document.getElementById('gMonths').value);
+  if(!desc){toast('⚠️ Ingresá una descripción');return}
+  if(!amount||amount<=0){toast('⚠️ Ingresá un monto válido');return}
+  if(!months||months<=0){toast('⚠️ Ingresá un plazo en meses');return}
+  goals.push({id:Date.now().toString(),type,desc,amount,currency,months,created:new Date().toISOString()});
+  localStorage.setItem('fa_goals',JSON.stringify(goals));
+  document.getElementById('gDesc').value='';
+  document.getElementById('gAmount').value='';
+  document.getElementById('gMonths').value='';
+  document.getElementById('addGoalForm').style.display='none';
+  renderGoals();
+  toast('🎯 Meta guardada');
+}
+function deleteGoal(id){
+  goals=goals.filter(g=>g.id!==id);
+  localStorage.setItem('fa_goals',JSON.stringify(goals));
+  renderGoals();
+  toast('🗑️ Meta eliminada');
+}
+function renderGoals(){
+  const el=document.getElementById('goalsList');if(!el)return;
+  if(!goals.length){
+    el.innerHTML='<div style="font-size:.78rem;color:var(--text-light);padding:6px 0">Todavía no tenés objetivos. ¡Agregá uno para que Claude los tenga en cuenta!</div>';
+    return;
+  }
+  const totalInc=(sett.income1||0)+(sett.income2||0);
+  const mt=getMTx(), totalG=mt.filter(t=>t.type==='gasto').reduce((s,t)=>s+t.amount,0);
+  const monthlySaving=Math.max(totalInc-totalG,0);
+  const usdArs=sett.rateBl||1450;
+  el.innerHTML=goals.map(g=>{
+    const amtArs=g.currency==='ARS'?g.amount:g.currency==='USD'?g.amount*usdArs:g.amount*usdArs*1.05;
+    const monthlyNeed=amtArs/g.months;
+    const needStr=`Necesitás ${fARS(monthlyNeed)}/mes durante ${g.months} meses`;
+    const feasible=monthlySaving>=monthlyNeed;
+    const icon=g.type.split(' ')[0];
+    return`<div class="goal-item">
+      <div class="goal-icon">${icon}</div>
+      <div class="goal-info">
+        <div class="gtitle">${g.desc}</div>
+        <div class="gsub">${g.type.replace(/^\S+\s/,'')} · ${g.currency==='ARS'?fARS(g.amount):'U$S '+g.amount} en ${g.months} meses</div>
+        <div class="gneed" style="color:${feasible?'var(--secondary)':'var(--danger)'}">${needStr} ${feasible?'✅':'⚠️'}</div>
+      </div>
+      <button onclick="deleteGoal('${g.id}')" style="background:none;border:none;color:var(--text-light);font-size:.85rem;cursor:pointer;padding:4px;border-radius:7px">✕</button>
+    </div>`;
+  }).join('');
+}
+
+// CHAT
+function clearChat(){
+  chatHistory=[];
+  const box=document.getElementById('chatMsgs');
+  if(box) box.innerHTML='<div class="cmsg assistant">¡Hola! Soy tu asesor financiero personal 👋 Tengo acceso a tus ingresos, gastos y objetivos para darte consejos adaptados a tu situación. ¿En qué te puedo ayudar hoy?</div>';
+}
+function sendQuick(msg){
+  const inp=document.getElementById('chatInp');
+  if(inp){inp.value=msg;sendMessage();}
+}
+function buildSystemPrompt(){
+  const mt=getMTx();
+  const gastos=mt.filter(t=>t.type==='gasto');
+  const totalG=gastos.reduce((s,t)=>s+t.amount,0);
+  const totalI=(sett.income1||0)+(sett.income2||0);
+  const rb=sett.rateBl||1450;
+  const byCat={};
+  gastos.forEach(t=>{const k=t.category.replace(/^[^\s]+\s/,'');byCat[k]=(byCat[k]||0)+t.amount});
+  const catStr=Object.entries(byCat).sort((a,b)=>b[1]-a[1])
+    .map(([k,v])=>`  - ${k}: ${fARS(v)} (${totalG>0?Math.round(v/totalG*100):0}%)`)
+    .join('\n')||'  (Sin gastos registrados este mes)';
+  const goalsStr=goals.length?goals.map(g=>`  - ${g.type} "${g.desc}": ${g.currency==='ARS'?fARS(g.amount):'U$S '+g.amount} en ${g.months} meses`).join('\n'):'  (Sin objetivos definidos)';
+  const [y,m]=curMonth.split('-').map(Number);
+  const mes=new Date(y,m-1,1).toLocaleDateString('es-AR',{month:'long',year:'numeric'}).toUpperCase();
+  return`Sos el asesor financiero personal de ${sett.name1} y ${sett.name2}. Respondés siempre en español, de forma amigable, clara y muy práctica. Conocés el contexto argentino (inflación, dólar blue, plazo fijo, etc.). Tus respuestas son concisas (máx 3-4 párrafos) y siempre terminan con al menos una acción concreta que puedan hacer esta semana.
+
+DATOS FINANCIEROS — ${mes}:
+
+INGRESOS MENSUALES:
+  - ${sett.name1}: ${fARS(sett.income1||0)} ARS
+  - ${sett.name2}: ${fARS(sett.income2||0)} ARS
+  - Total: ${fARS(totalI)} ARS (≈ U$S ${Math.round(totalI/rb)} al blue)
+
+GASTOS DEL MES:
+  - Total: ${fARS(totalG)} ARS (≈ U$S ${Math.round(totalG/rb)} al blue)
+  - Por categoría:
+${catStr}
+
+BALANCE:
+  - Ahorro potencial: ${fARS(totalI-totalG)} ARS
+  - Tasa de ahorro: ${totalI>0?Math.round((1-totalG/totalI)*100):0}%
+
+OBJETIVOS:
+${goalsStr}
+
+CONTEXTO ECONÓMICO:
+  - Dólar blue venta: $${fN(sett.rateBl||0)} ARS
+  - Dólar oficial venta: $${fN(sett.rateOf||0)} ARS
+  ${sett.ipcM>0?`- IPC mensual: ${sett.ipcM}%`:''}
+  ${sett.inflaA>0?`- Inflación anual estimada: ${sett.inflaA}%`:''}
+  ${sett.tna>0?`- TNA Plazo Fijo: ${sett.tna}%`:''}`;
+}
+async function sendMessage(){
+  if(chatBusy)return;
+  const inp=document.getElementById('chatInp');
+  const msg=inp.value.trim();
+  if(!msg)return;
+  if(!sett.apiKey||!sett.apiKey.startsWith('sk-ant-')){
+    toast('⚠️ Configurá tu API key en Ajustes');
+    showPage('ajustes');
+    return;
+  }
+  inp.value='';
+  chatBusy=true;
+  chatHistory.push({role:'user',content:msg});
+  renderChatMsgs();
+  // Typing indicator
+  const box=document.getElementById('chatMsgs');
+  if(box){
+    const t=document.createElement('div');
+    t.className='cmsg typing';t.id='typingDot';
+    t.textContent='Claude está pensando...';
+    box.appendChild(t);
+    box.scrollTop=box.scrollHeight;
+  }
+  try{
+    // Keep last 10 exchanges to limit token usage
+    const msgs=chatHistory.slice(-20);
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'x-api-key':sett.apiKey,
+        'anthropic-version':'2023-06-01',
+        'content-type':'application/json',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({
+        model:'claude-haiku-4-5-20251001',
+        max_tokens:1024,
+        system:buildSystemPrompt(),
+        messages:msgs
+      })
+    });
+    const td=document.getElementById('typingDot');if(td)td.remove();
+    if(!res.ok){
+      const err=await res.json().catch(()=>({}));
+      throw new Error(err.error?.message||`Error ${res.status}`);
+    }
+    const data=await res.json();
+    const reply=data.content[0].text;
+    chatHistory.push({role:'assistant',content:reply});
+  }catch(e){
+    const td=document.getElementById('typingDot');if(td)td.remove();
+    const errMsg=e.message.includes('401')||e.message.includes('invalid')?
+      '❌ API key inválida. Verificala en Ajustes.':
+      `❌ Error: ${e.message}`;
+    chatHistory.push({role:'assistant',content:errMsg});
+  }
+  chatBusy=false;
+  renderChatMsgs();
+}
+function renderChatMsgs(){
+  const box=document.getElementById('chatMsgs');if(!box)return;
+  const welcome='<div class="cmsg assistant">¡Hola! Soy tu asesor financiero personal 👋 Tengo acceso a tus ingresos, gastos y objetivos para darte consejos adaptados a tu situación. ¿En qué te puedo ayudar hoy?</div>';
+  if(!chatHistory.length){box.innerHTML=welcome;return;}
+  box.innerHTML=welcome+chatHistory.map(m=>`<div class="cmsg ${m.role}">${m.content}</div>`).join('');
+  box.scrollTop=box.scrollHeight;
 }
 
 // ── COTIZACIONES (API) ────────────────────────────────────────────────────────
