@@ -901,12 +901,15 @@ function tryDeletePerson(id){
 function confirmDeletePerson(){
   const inp=document.getElementById('delConfirmInp');
   const err=document.getElementById('delError');
-  if(!inp||!deleteTarget) return;
-  if(inp.value.trim()!==personName(deleteTarget)){
-    if(err) err.style.display='block';
+  if(!inp) return;
+  if(!deleteTarget){cancelDelete();return;}
+  const typed=inp.value.trim().toLowerCase();
+  const expected=personName(deleteTarget).trim().toLowerCase();
+  if(typed!==expected){
+    if(err){err.style.display='block';err.textContent='❌ El nombre no coincide. Esperado: "'+personName(deleteTarget)+'"';}
     return;
   }
-  const idToDelete=deleteTarget; // guardar antes de que cancelDelete lo limpie
+  const idToDelete=deleteTarget;
   cancelDelete();
   _doRemovePerson(idToDelete);
 }
