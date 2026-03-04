@@ -150,9 +150,8 @@
     .badge-red{background:#fee2e2;color:var(--danger)}.badge-green{background:#d1fae5;color:#065f46}.badge-yellow{background:#fef3c7;color:#92400e}
 
     /* Currency pills */
-    .cpills{display:flex;gap:5px;margin-top:9px;flex-wrap:wrap}
-    .cpill{padding:6px 12px;border-radius:20px;border:2px solid var(--border);font-size:.8rem;font-weight:700;cursor:pointer;background:#fff;color:var(--text-light);transition:all .2s;white-space:nowrap}
-    .cpill.active{background:var(--primary);border-color:var(--primary);color:#fff}
+    /* Currency select */
+    #selCur{width:auto;margin-top:8px;font-size:.88rem;padding:8px 12px;font-weight:600;color:var(--primary);border-color:var(--primary)}
     /* Conversion preview */
     .conv-prev{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:9px 13px;margin-top:7px;font-size:.88rem;font-weight:700;color:#166534}
     .conv-prev.warn{background:#fff7ed;border-color:#fed7aa;color:#92400e}
@@ -210,7 +209,7 @@
     <div class="fgroup">
       <label class="flabel">Monto</label>
       <input type="number" class="ainput" id="inpAmt" placeholder="0" min="0" inputmode="decimal" oninput="updateConvPreview()">
-      <div class="cpills" id="curPills"></div>
+      <select id="selCur" onchange="setCurrency(this.value)"></select>
       <div class="conv-prev" id="convPreview" style="display:none"></div>
     </div>
     <div class="fgroup">
@@ -506,14 +505,19 @@ function setPerson(p){
 }
 // ── MONEDAS ───────────────────────────────────────────────────────────────────
 function renderCurPills(){
-  const el=document.getElementById('curPills');if(!el)return;
-  el.innerHTML=CURRENCIES.map(c=>
-    `<button class="cpill${curCurrency===c.code?' active':''}" onclick="setCurrency('${c.code}')" title="${c.name}">${c.sym} ${c.code}</button>`
-  ).join('');
+  const el=document.getElementById('selCur');if(!el)return;
+  if(!el.options.length){
+    CURRENCIES.forEach(c=>{
+      const o=document.createElement('option');
+      o.value=c.code;
+      o.textContent=`${c.sym} ${c.code} — ${c.name}`;
+      el.appendChild(o);
+    });
+  }
+  el.value=curCurrency;
 }
 function setCurrency(code){
   curCurrency=code;
-  renderCurPills();
   updateConvPreview();
 }
 async function getConvRate(fromCur){
@@ -595,7 +599,8 @@ async function saveTx(){
   document.getElementById('selCat').value='';
   document.getElementById('selSub').innerHTML='<option value="">Primero elegí una categoría</option>';
   // Reset currency to ARS
-  curCurrency='ARS';renderCurPills();
+  curCurrency='ARS';
+  const selCur=document.getElementById('selCur');if(selCur)selCur.value='ARS';
   document.getElementById('convPreview').style.display='none';
   toast('✅ ¡Guardado!');showPage('inicio');
 }
