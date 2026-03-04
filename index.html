@@ -236,13 +236,9 @@
       <select id="selCur" onchange="setCurrency(this.value)"></select>
       <div class="conv-prev" id="convPreview" style="display:none"></div>
     </div>
-    <div class="fgroup">
+    <div class="fgroup" id="personGroup">
       <label class="flabel">¿De quién?</label>
-      <div class="tgroup">
-        <button class="pbtn am" id="pManu" onclick="setPerson('manu')">👤 <span id="nl1">Manu</span></button>
-        <button class="pbtn" id="pCande" onclick="setPerson('cande')">👤 <span id="nl2">Cande</span></button>
-        <button class="pbtn" id="pComp" onclick="setPerson('compartido')">🤝 Compartido</button>
-      </div>
+      <div class="tgroup" id="personBtns"></div>
     </div>
     <div class="fgroup">
       <label class="flabel">Categoría</label>
@@ -267,14 +263,7 @@
 <!-- ═══ HISTORIAL ═══ -->
 <div class="page" id="page-historial">
   <div class="content">
-    <div class="ftabs">
-      <button class="ftab active" onclick="setHF('all',this)">Todos</button>
-      <button class="ftab" id="fn1" onclick="setHF('manu',this)">Manu</button>
-      <button class="ftab" id="fn2" onclick="setHF('cande',this)">Cande</button>
-      <button class="ftab" onclick="setHF('compartido',this)">Compartido</button>
-      <button class="ftab" onclick="setHF('gasto',this)">Gastos</button>
-      <button class="ftab" onclick="setHF('ingreso',this)">Ingresos</button>
-    </div>
+    <div class="ftabs" id="histTabs"></div>
     <div class="msel">
       <button onclick="chMonth(-1)">‹</button>
       <span id="mDispH">...</span>
@@ -307,14 +296,11 @@
 <div class="page" id="page-ajustes">
   <div class="content">
     <div class="card">
-      <div class="ctitle">Nombres</div>
-      <div class="sitem"><label>Persona 1</label><input type="text" id="sN1" placeholder="Manu" oninput="saveSett()"></div>
-      <div class="sitem"><label>Persona 2</label><input type="text" id="sN2" placeholder="Cande" oninput="saveSett()"></div>
-    </div>
-    <div class="card">
-      <div class="ctitle">Ingresos mensuales (ARS)</div>
-      <div class="sitem"><label id="sIL1">Manu</label><input type="number" id="sI1" placeholder="0" oninput="saveSett()"></div>
-      <div class="sitem"><label id="sIL2">Cande</label><input type="number" id="sI2" placeholder="0" oninput="saveSett()"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div class="ctitle" style="margin:0">Personas</div>
+        <button class="rfbtn" onclick="addPerson()">+ Agregar</button>
+      </div>
+      <div id="peopleSettings"></div>
     </div>
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
@@ -502,6 +488,8 @@ const CATS = {
   "💰 Ingreso":             ["Sueldo / Haberes","Freelance / Honorarios","Alquiler cobrado","Venta de activos","Regalo / Extra","Devolución","Bono","Otros ingreso"]
 };
 const CCOLORS = ['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#84cc16','#ec4899','#14b8a6','#a855f7','#eab308','#64748b','#22d3ee'];
+const PERSON_COLORS = ['#4f46e5','#10b981','#f97316','#ec4899','#8b5cf6','#06b6d4'];
+let people = [{id:'p1',name:'Manu',income:0}];
 
 const CURRENCIES = [
   {code:'ARS', sym:'$',    name:'Peso argentino'},
@@ -514,7 +502,7 @@ const CURRENCIES = [
 ];
 
 // ── ESTADO ───────────────────────────────────────────────────────────────────
-let curMonth, hFilter='all', curType='gasto', curPerson='manu', curCurrency='ARS';
+let curMonth, hFilter='all', curType='gasto', curPerson='p1', curCurrency='ARS';
 let fxCache={}; // cache para tasas de frankfurter.app (pares no-ARS/USD)
 let goals=[], chatHistory=[], chatBusy=false;
 let txs=[], sett={
@@ -540,13 +528,19 @@ function init(){
   // Load API key separately (not in sett to avoid export exposure)
   const ak=localStorage.getItem('fa_key');
   if(ak){sett.apiKey=ak; const el=document.getElementById('sApiKey');if(el)el.value=ak;}
+  // Load people (dynamic persons system)
+  loadPeople();
   const n=new Date();
   curMonth=`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`;
   document.getElementById('inpDate').value=n.toISOString().split('T')[0];
   document.getElementById('yrLabel').textContent=n.getFullYear();
+  curPerson=people[0].id;
   populateCats();
   applySett();
   renderCurPills();
+  renderPersonBtns();
+  renderPeopleSettings();
+  renderHistTabs();
   renderEcon();
   renderDash();
   updMDisp();
@@ -555,19 +549,13 @@ function init(){
 }
 
 function applySett(){
-  const fields={sN1:'name1',sN2:'name2',sI1:'income1',sI2:'income2',sROf:'rateOf',sRBl:'rateBl',sRMep:'rateMep',sIpcM:'ipcM',sIpcA:'ipcA',sTna:'tna',sUva:'uva',sInflaA:'inflaA'};
+  const fields={sROf:'rateOf',sRBl:'rateBl',sRMep:'rateMep',sIpcM:'ipcM',sIpcA:'ipcA',sTna:'tna',sUva:'uva',sInflaA:'inflaA'};
   Object.entries(fields).forEach(([id,k])=>{const e=document.getElementById(id);if(e)e.value=sett[k]||''});
-  document.getElementById('nl1').textContent=sett.name1;
-  document.getElementById('nl2').textContent=sett.name2;
-  ['sIL1','sIL2','fn1','fn2'].forEach((id,i)=>{const e=document.getElementById(id);if(e)e.textContent=[sett.name1,sett.name2,sett.name1,sett.name2][i]});
   const sConv=document.getElementById('sConvType');if(sConv)sConv.value=sett.convType||'blue';
+  renderPeopleSettings();
 }
 
 function saveSett(){
-  sett.name1=document.getElementById('sN1').value||'Manu';
-  sett.name2=document.getElementById('sN2').value||'Cande';
-  sett.income1=parseFloat(document.getElementById('sI1').value)||0;
-  sett.income2=parseFloat(document.getElementById('sI2').value)||0;
   sett.rateOf=parseFloat(document.getElementById('sROf').value)||1400;
   sett.rateBl=parseFloat(document.getElementById('sRBl').value)||1450;
   sett.rateMep=parseFloat(document.getElementById('sRMep').value)||0;
@@ -619,15 +607,9 @@ function setType(t){
   document.getElementById('tIngreso').className='tbtn'+(t==='ingreso'?' ai':'');
   populateCats(t);
 }
-function setPerson(p){
-  // FIX: use explicit ID map to avoid null errors
-  curPerson=p;
-  const idMap={manu:'pManu',cande:'pCande',compartido:'pComp'};
-  const clsMap={manu:'am',cande:'ac',compartido:'as'};
-  Object.keys(idMap).forEach(x=>{
-    const el=document.getElementById(idMap[x]);
-    if(el) el.className='pbtn'+(p===x?' '+clsMap[x]:'');
-  });
+function setPerson(id){
+  curPerson=id;
+  renderPersonBtns();
 }
 // ── MONEDAS ───────────────────────────────────────────────────────────────────
 function renderCurPills(){
@@ -683,6 +665,115 @@ async function updateConvPreview(){
   const typeLabel={oficial:'oficial',mep:'MEP',blue:'blue'}[sett.convType||'blue'];
   prev.className='conv-prev';
   prev.innerHTML=`≈ ${fARS(inArs)} ARS <span style="font-weight:400;font-size:.76rem;color:#166534">(dólar ${typeLabel})</span>`;
+}
+
+// ── PERSONAS DINÁMICAS ────────────────────────────────────────────────────────
+function personName(id){
+  if(id==='compartido') return 'Compartido';
+  const p=people.find(p=>p.id===id);
+  return p?p.name:id;
+}
+function personColor(id){
+  if(id==='compartido') return '#f59e0b';
+  const i=people.findIndex(p=>p.id===id);
+  return PERSON_COLORS[i]||'#64748b';
+}
+function totalIncome(){
+  return people.reduce((s,p)=>s+(p.income||0),0);
+}
+function loadPeople(){
+  const sp=localStorage.getItem('fa_people');
+  if(sp){try{people=JSON.parse(sp)}catch(e){}}
+  else{
+    // Migrar desde formato antiguo sett.name1/name2
+    people=[];
+    if(sett.name1) people.push({id:'p1',name:sett.name1,income:sett.income1||0});
+    if(sett.name2) people.push({id:'p2',name:sett.name2,income:sett.income2||0});
+    if(!people.length) people=[{id:'p1',name:'Manu',income:0}];
+    savePeople();
+  }
+  // Migrar transacciones viejas ('manu' → 'p1', 'cande' → 'p2')
+  let changed=false;
+  txs=txs.map(t=>{
+    if(t.person==='manu'){changed=true;return{...t,person:'p1'}}
+    if(t.person==='cande'){changed=true;return{...t,person:'p2'}}
+    return t;
+  });
+  if(changed) localStorage.setItem('fa_tx',JSON.stringify(txs));
+}
+function savePeople(){
+  localStorage.setItem('fa_people',JSON.stringify(people));
+}
+function addPerson(){
+  const id='p'+Date.now();
+  people.push({id,name:'Persona '+(people.length+1),income:0});
+  savePeople();
+  renderPeopleSettings();
+  renderPersonBtns();
+  toast('👤 Persona agregada — editá su nombre en Ajustes');
+}
+function removePerson(id){
+  if(people.length<=1){toast('⚠️ Debe haber al menos una persona');return}
+  if(!confirm('¿Eliminás a '+personName(id)+'? Sus transacciones quedarán sin asignar.')) return;
+  people=people.filter(p=>p.id!==id);
+  if(curPerson===id) curPerson=people[0].id;
+  savePeople();
+  renderPeopleSettings();
+  renderPersonBtns();
+  renderHistTabs();
+  renderDash();
+  toast('🗑️ Persona eliminada');
+}
+function updatePerson(id,field,value){
+  const p=people.find(p=>p.id===id);if(!p)return;
+  p[field]=field==='income'?(parseFloat(value)||0):value;
+  savePeople();
+  if(field==='name'){renderPersonBtns();renderHistTabs();renderDash();}
+}
+function renderPeopleSettings(){
+  const el=document.getElementById('peopleSettings');if(!el)return;
+  el.innerHTML=people.map((p,i)=>`
+    <div style="padding:10px 0;${i>0?'border-top:1px solid var(--border)':''}">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <div style="width:11px;height:11px;border-radius:50%;background:${PERSON_COLORS[i]||'#64748b'};flex-shrink:0"></div>
+        <input type="text" value="${p.name}" placeholder="Nombre" style="flex:1;padding:8px 10px;font-size:.9rem;font-weight:600;border:2px solid var(--border);border-radius:11px" oninput="updatePerson('${p.id}','name',this.value)">
+        ${people.length>1?`<button onclick="removePerson('${p.id}')" style="background:none;border:1px solid var(--border);color:var(--text-light);cursor:pointer;font-size:.8rem;padding:6px 10px;border-radius:9px">✕</button>`:''}
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding-left:19px">
+        <span style="font-size:.76rem;color:var(--text-light);white-space:nowrap;min-width:80px">Ingreso ARS</span>
+        <input type="number" value="${p.income||''}" placeholder="0" inputmode="decimal" style="flex:1;padding:7px 10px;font-size:.86rem;border:2px solid var(--border);border-radius:11px" oninput="updatePerson('${p.id}','income',this.value)">
+      </div>
+    </div>`).join('');
+}
+function renderPersonBtns(){
+  const grp=document.getElementById('personGroup');
+  const el=document.getElementById('personBtns');if(!el)return;
+  if(people.length===1){
+    if(grp) grp.style.display='none';
+    curPerson=people[0].id;return;
+  }
+  if(grp) grp.style.display='block';
+  const btns=people.map((p,i)=>{
+    const act=curPerson===p.id;
+    const col=PERSON_COLORS[i]||'#64748b';
+    return`<button class="pbtn" onclick="setPerson('${p.id}')" style="${act?`background:${col};color:#fff;border-color:${col}`:''}">👤 ${p.name}</button>`;
+  });
+  if(people.length>=2){
+    const act=curPerson==='compartido';
+    btns.push(`<button class="pbtn" onclick="setPerson('compartido')" style="${act?'background:#f59e0b;color:#fff;border-color:#f59e0b':''}">🤝 Compartido</button>`);
+  }
+  el.innerHTML=btns.join('');
+}
+function renderHistTabs(){
+  const el=document.getElementById('histTabs');if(!el)return;
+  const tabs=[
+    {id:'all',label:'Todos'},
+    ...people.map(p=>({id:p.id,label:p.name})),
+    ...(people.length>=2?[{id:'compartido',label:'Compartido'}]:[]),
+    {id:'gasto',label:'Gastos'},
+    {id:'ingreso',label:'Ingresos'},
+  ];
+  el.innerHTML=tabs.map(t=>`<button class="ftab${hFilter===t.id?' active':''}" onclick="setHF('${t.id}',this)">${t.label}</button>`).join('');
 }
 
 function populateCats(type){
@@ -790,7 +881,7 @@ function renderGoals(){
     el.innerHTML='<div style="font-size:.78rem;color:var(--text-light);padding:6px 0">Todavía no tenés objetivos. ¡Agregá uno para que Claude los tenga en cuenta!</div>';
     return;
   }
-  const totalInc=(sett.income1||0)+(sett.income2||0);
+  const totalInc=totalIncome();
   const mt=getMTx(), totalG=mt.filter(t=>t.type==='gasto').reduce((s,t)=>s+t.amount,0);
   const monthlySaving=Math.max(totalInc-totalG,0);
   const usdArs=sett.rateBl||1450;
@@ -826,7 +917,7 @@ function buildSystemPrompt(){
   const mt=getMTx();
   const gastos=mt.filter(t=>t.type==='gasto');
   const totalG=gastos.reduce((s,t)=>s+t.amount,0);
-  const totalI=(sett.income1||0)+(sett.income2||0);
+  const totalI=totalIncome();
   const rb=sett.rateBl||1450;
   const byCat={};
   gastos.forEach(t=>{const k=t.category.replace(/^[^\s]+\s/,'');byCat[k]=(byCat[k]||0)+t.amount});
@@ -836,13 +927,13 @@ function buildSystemPrompt(){
   const goalsStr=goals.length?goals.map(g=>`  - ${g.type} "${g.desc}": ${g.currency==='ARS'?fARS(g.amount):'U$S '+g.amount} en ${g.months} meses`).join('\n'):'  (Sin objetivos definidos)';
   const [y,m]=curMonth.split('-').map(Number);
   const mes=new Date(y,m-1,1).toLocaleDateString('es-AR',{month:'long',year:'numeric'}).toUpperCase();
-  return`Sos el asesor financiero personal de ${sett.name1} y ${sett.name2}. Respondés siempre en español, de forma amigable, clara y muy práctica. Conocés el contexto argentino (inflación, dólar blue, plazo fijo, etc.). Tus respuestas son concisas (máx 3-4 párrafos) y siempre terminan con al menos una acción concreta que puedan hacer esta semana.
+  const nombres=people.map(p=>p.name).join(' y ');
+  return`Sos el asesor financiero personal de ${nombres}. Respondés siempre en español, de forma amigable, clara y muy práctica. Conocés el contexto argentino (inflación, dólar blue, plazo fijo, etc.). Tus respuestas son concisas (máx 3-4 párrafos) y siempre terminan con al menos una acción concreta que puedan hacer esta semana.
 
 DATOS FINANCIEROS — ${mes}:
 
 INGRESOS MENSUALES:
-  - ${sett.name1}: ${fARS(sett.income1||0)} ARS
-  - ${sett.name2}: ${fARS(sett.income2||0)} ARS
+${people.map(p=>`  - ${p.name}: ${fARS(p.income||0)} ARS`).join('\n')}
   - Total: ${fARS(totalI)} ARS (≈ U$S ${Math.round(totalI/rb)} al blue)
 
 GASTOS DEL MES:
@@ -1029,14 +1120,13 @@ function renderEcon(){
   if(sett.uva>0) h+=`<div class="econ-row"><span class="econ-lbl">🏠 Valor UVA</span><span class="econ-val">$${fN(sett.uva)}</span></div>`;
 
   // Poder adquisitivo
-  const totalInc=(sett.income1||0)+(sett.income2||0);
+  const totalInc=totalIncome();
   if(totalInc>0){
     h+='<div class="econ-sec" style="margin-top:10px">PODER ADQUISITIVO</div>';
     h+='<div class="pa-grid">';
     if(econ.blue.v>0) h+=`<div class="pa-item"><div class="lbl">Ingresos USD blue</div><div class="val">U$S ${fN(totalInc/econ.blue.v)}</div></div>`;
     if(econ.oficial.v>0) h+=`<div class="pa-item"><div class="lbl">Ingresos USD oficial</div><div class="val">U$S ${fN(totalInc/econ.oficial.v)}</div></div>`;
-    if(sett.income1>0&&econ.blue.v>0) h+=`<div class="pa-item"><div class="lbl">${sett.name1} en USD blue</div><div class="val">U$S ${fN(sett.income1/econ.blue.v)}</div></div>`;
-    if(sett.income2>0&&econ.blue.v>0) h+=`<div class="pa-item"><div class="lbl">${sett.name2} en USD blue</div><div class="val">U$S ${fN(sett.income2/econ.blue.v)}</div></div>`;
+    people.forEach(p=>{if((p.income||0)>0&&econ.blue.v>0) h+=`<div class="pa-item"><div class="lbl">${p.name} en USD blue</div><div class="val">U$S ${fN(p.income/econ.blue.v)}</div></div>`;});
     if(sett.ipcM>0){
       const loss=totalInc*sett.ipcM/100;
       h+=`<div class="pa-item pa-wide" style="background:#fee2e2">
@@ -1056,7 +1146,7 @@ function getMTx(){return txs.filter(t=>t.date.startsWith(curMonth))}
 function renderDash(){
   const mt=getMTx(),g=mt.filter(t=>t.type==='gasto'),ig=mt.filter(t=>t.type==='ingreso');
   const tg=g.reduce((s,t)=>s+t.amount,0);
-  const ti=(sett.income1+sett.income2)||ig.reduce((s,t)=>s+t.amount,0);
+  const ti=totalIncome()||ig.reduce((s,t)=>s+t.amount,0);
   const ah=ti-tg;
   const rb=sett.rateBl||1450;
   document.getElementById('stGastos').textContent=fARS(tg);
@@ -1066,7 +1156,7 @@ function renderDash(){
   document.getElementById('stUSD').textContent='U$S '+fN(rb>0?tg/rb:0);
 
   // Person bars
-  const ps=[{k:'manu',l:sett.name1,c:'#3b82f6'},{k:'cande',l:sett.name2,c:'#ec4899'},{k:'compartido',l:'Compartido',c:'#10b981'}];
+  const ps=[...people.map((p,i)=>({k:p.id,l:p.name,c:PERSON_COLORS[i]||'#64748b'})),{k:'compartido',l:'Compartido',c:'#f59e0b'}];
   const mx=Math.max(...ps.map(p=>g.filter(t=>t.person===p.k).reduce((s,t)=>s+t.amount,0)),1);
   document.getElementById('personBar').innerHTML=ps.map(p=>{
     const v=g.filter(t=>t.person===p.k).reduce((s,t)=>s+t.amount,0);
@@ -1093,14 +1183,15 @@ function renderDash(){
 // ── HISTORIAL ────────────────────────────────────────────────────────────────
 function setHF(f,btn){
   hFilter=f;
-  document.querySelectorAll('.ftab').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
+  renderHistTabs(); // re-render to update active state
   renderHist();
 }
 function renderHist(){
   let mt=getMTx();
-  const filters={manu:t=>t.person==='manu',cande:t=>t.person==='cande',compartido:t=>t.person==='compartido',gasto:t=>t.type==='gasto',ingreso:t=>t.type==='ingreso'};
-  if(filters[hFilter]) mt=mt.filter(filters[hFilter]);
+  // Dynamic person filters (any person ID) + type filters
+  if(hFilter==='gasto') mt=mt.filter(t=>t.type==='gasto');
+  else if(hFilter==='ingreso') mt=mt.filter(t=>t.type==='ingreso');
+  else if(hFilter!=='all') mt=mt.filter(t=>t.person===hFilter);
   const sorted=[...mt].sort((a,b)=>b.date.localeCompare(a.date));
   document.getElementById('txList').innerHTML=sorted.length?sorted.map(t=>txItem(t,true)).join(''):'<div class="empty"><div class="ei">📋</div><p>No hay transacciones</p></div>';
 }
@@ -1113,9 +1204,8 @@ function delTx(id){
 function txItem(t,del=false){
   const em=t.category.split(' ')[0]||'💸';
   const cn=t.category.replace(/^[^\s]+\s/,'');
-  const pc={manu:'#3b82f6',cande:'#ec4899',compartido:'#10b981'};
-  const col=pc[t.person]||'#6366f1';
-  const pn=t.person==='manu'?sett.name1:t.person==='cande'?sett.name2:'Compartido';
+  const col=personColor(t.person);
+  const pn=personName(t.person);
   const df=new Date(t.date+'T12:00:00').toLocaleDateString('es-AR',{day:'numeric',month:'short'});
   return`<div class="txitem">
     <div class="txicon" style="background:${col}22;color:${col}">${em}</div>
@@ -1166,12 +1256,12 @@ function renderRep(){
   }).join('')+'</div>';
 
   // Person breakdown
-  const ps=[{k:'manu',l:sett.name1,pc:'manu'},{k:'cande',l:sett.name2,pc:'cande'},{k:'compartido',l:'Compartido',pc:'compartido'}];
+  const ps=[...people.map((p,i)=>({k:p.id,l:p.name,c:PERSON_COLORS[i]||'#64748b'})),{k:'compartido',l:'Compartido',c:'#f59e0b'}];
   document.getElementById('pBreak').innerHTML=ps.map(p=>{
     const v=g.filter(t=>t.person===p.k).reduce((s,t)=>s+t.amount,0);
     const pct=total>0?Math.round(v/total*100):0;
     return`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
-      <span class="ppill ${p.pc}">${p.l}</span>
+      <span style="font-weight:700;font-size:.82rem;padding:4px 10px;border-radius:12px;background:${p.c}22;color:${p.c}">${p.l}</span>
       <span style="font-weight:800;font-size:.9rem">${fARS(v)}</span>
       <span style="font-size:.76rem;color:var(--text-light)">${pct}%</span>
     </div>`;
