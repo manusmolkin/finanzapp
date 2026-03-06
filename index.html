@@ -90,7 +90,7 @@
     /* Bar chart */
     .bchart{display:flex;flex-direction:column;gap:7px;margin-top:5px}
     .bitem{display:flex;align-items:center;gap:6px}
-    .blabel{width:110px;font-size:.71rem;color:var(--text-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
+    .blabel{width:130px;font-size:.69rem;color:var(--text-light);flex-shrink:0;line-height:1.3;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
     .btrack{flex:1;height:7px;background:var(--bg);border-radius:4px;overflow:hidden}
     .bfill{height:100%;border-radius:4px;transition:width .5s ease}
     .bval{width:72px;font-size:.71rem;font-weight:700;text-align:right;flex-shrink:0}
@@ -1755,9 +1755,22 @@ function delTx(id){
   sbDeleteTx(id);
   renderHist();toast('🗑️ Eliminada');
 }
+function catEmoji(cat){
+  if(!cat)return'💳';
+  if(cat.codePointAt(0)>127)return cat.split(' ')[0];
+  for(const [parent,subs] of Object.entries(CATS)){
+    if(subs.includes(cat))return parent.codePointAt(0)>127?parent.split(' ')[0]:'💳';
+  }
+  return'💳';
+}
+function catName(cat){
+  if(!cat)return'Sin categoría';
+  return cat.codePointAt(0)>127?cat.replace(/^[^\s]+\s/,''):cat;
+}
+
 function txItem(t,del=false){
-  const em=t.category.split(' ')[0]||'💸';
-  const cn=t.category.replace(/^[^\s]+\s/,'');
+  const em=catEmoji(t.category);
+  const cn=catName(t.category);
   const col=personColor(t.person);
   const pn=personName(t.person);
   const df=new Date(t.date+'T12:00:00').toLocaleDateString('es-AR',{day:'numeric',month:'short'});
@@ -1799,7 +1812,7 @@ function renderRep(){
   segs+=`<text x="${cx}" y="${cy+11}" text-anchor="middle" font-size="8" fill="#64748b">gastos</text>`;
   const leg=sorted.slice(0,6).map(([cat,val],i)=>{
     const col=CCOLORS[ckeys.findIndex(k=>k===cat)%CCOLORS.length]||CCOLORS[i%CCOLORS.length];
-    return`<div class="legitem"><div class="legdot" style="background:${col}"></div><span class="legname">${cat.replace(/^[^\s]+\s/,'').slice(0,16)}</span><span class="legval">${Math.round(val/total*100)}%</span></div>`;
+    return`<div class="legitem"><div class="legdot" style="background:${col}"></div><span class="legname">${catName(cat).slice(0,18)}</span><span class="legval">${Math.round(val/total*100)}%</span></div>`;
   }).join('');
   document.getElementById('donutCon').innerHTML=`<svg width="${sz}" height="${sz}" style="flex-shrink:0">${segs}</svg><div class="dleg">${leg}</div>`;
 
@@ -1807,7 +1820,7 @@ function renderRep(){
   const mx=sorted[0][1];
   document.getElementById('catBar').innerHTML='<div class="bchart">'+sorted.map(([cat,val],i)=>{
     const col=CCOLORS[ckeys.findIndex(k=>k===cat)%CCOLORS.length]||CCOLORS[i%CCOLORS.length];
-    return`<div class="bitem"><span class="blabel">${cat.replace(/^[^\s]+\s/,'')}</span><div class="btrack"><div class="bfill" style="width:${Math.round(val/mx*100)}%;background:${col}"></div></div><span class="bval">${fARS(val)}</span></div>`;
+    return`<div class="bitem"><span class="blabel">${catName(cat)}</span><div class="btrack"><div class="bfill" style="width:${Math.round(val/mx*100)}%;background:${col}"></div></div><span class="bval">${fARS(val)}</span></div>`;
   }).join('')+'</div>';
 
   // Person breakdown
@@ -1921,18 +1934,20 @@ function openEditTx(id){
   setEditType(t.type||'gasto');
   // Desc
   document.getElementById('editTxDesc').textContent=(t.note||t.category)+' · '+new Date(t.date+'T12:00:00').toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'});
-  // Categoria selector
+  // Categoria selector — solo categorías principales con emoji
   const sel=document.getElementById('editCatSel');
-  let opts='';
-  Object.entries(CATS).forEach(([g,cats])=>{
-    opts+=`<optgroup label="${g}">`;
-    cats.forEach(c=>{opts+=`<option value="${c}"${t.category===c?' selected':''}>${c}</option>`;});
-    opts+='</optgroup>';
-  });
-  // Add option for current category if not in list (e.g. "💳 Mercado Pago")
-  const allCats=Object.values(CATS).flat();
-  if(!allCats.includes(t.category)){opts=`<option value="${t.category}" selected>${t.category}</option>`+opts;}
-  sel.innerHTML=opts;
+  const mainCats=Object.keys(CATS);
+  // Encontrar categoría principal actual
+  let currentMain=t.category;
+  if(t.category.codePointAt(0)<=127){
+    for(const [parent,subs] of Object.entries(CATS)){
+      if(subs.includes(t.category)){currentMain=parent;break;}
+    }
+  }
+  // Extra options para categorías de MP que no están en CATS
+  const extras=['💳 Mercado Pago'];
+  const allOptions=[...mainCats,...extras.filter(e=>!mainCats.includes(e))];
+  sel.innerHTML=allOptions.map(c=>`<option value="${c}"${currentMain===c?' selected':''}>${c}</option>`).join('');
   // Merchant rule section
   const mSec=document.getElementById('editMerchantSec');
   const mKey=extractMerchantKey(t.note||'');
