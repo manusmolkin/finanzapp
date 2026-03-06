@@ -380,6 +380,35 @@
       </div>
       <div id="householdInfo"><div style="font-size:.78rem;color:var(--text-light)">Cargando…</div></div>
     </div>
+    <!-- Mercado Pago -->
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div class="ctitle" style="margin:0">💳 Mercado Pago</div>
+        <div id="mpStatusBadge"></div>
+      </div>
+      <!-- Sin conexión -->
+      <div id="mpCardContent">
+        <div style="font-size:.72rem;color:var(--text-light);margin-bottom:12px;line-height:1.5">Conectá tu cuenta para importar tus transacciones automáticamente.</div>
+        <div id="mpPersonSelect" style="display:none;margin-bottom:10px">
+          <label style="font-size:.62rem;color:var(--text-light);font-weight:700;text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:4px">¿De quién es esta cuenta MP?</label>
+          <select id="mpPersonPicker" style="width:100%;padding:8px 10px;font-size:.9rem;border:2px solid var(--border);border-radius:11px;background:var(--bg);color:var(--text)"></select>
+        </div>
+        <button onclick="connectMP()" class="btnp" style="width:100%;padding:10px;font-size:.9rem">🔗 Conectar Mercado Pago</button>
+      </div>
+      <!-- Conectado -->
+      <div id="mpConnectedInfo" style="display:none">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="color:#00b300;font-size:1.1rem">✅</span>
+          <span style="font-size:.85rem;font-weight:600">Cuenta conectada</span>
+        </div>
+        <div style="font-size:.72rem;color:var(--text-light);margin-bottom:10px" id="mpLastSync">Última sincronización: —</div>
+        <button onclick="syncMP()" id="mpSyncBtn" class="rfbtn" style="width:100%">🔄 Sincronizar ahora</button>
+        <div style="margin-top:8px;text-align:center">
+          <span style="font-size:.65rem;color:var(--text-light);cursor:pointer;text-decoration:underline" onclick="disconnectMP()">Desconectar</span>
+        </div>
+      </div>
+    </div>
+
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div class="ctitle" style="margin:0">Personas</div>
@@ -1240,6 +1269,8 @@ async function checkAuth(){
     initApp();
     showApp();
     renderHouseholdSettings();
+    if(profile&&profile.household_id) renderMPCard();
+    checkMPCallback();
     if(!profile||!profile.household_id) showAuthHousehold();
   }catch(e){
     console.warn('checkAuth error:',e);
@@ -1832,6 +1863,91 @@ function clearData(){
   if(!confirm('¿Borrar TODOS los datos? Esta acción no se puede deshacer.'))return;
   txs=[];localStorage.setItem('fa_tx',JSON.stringify(txs));
   toast('🗑️ Datos borrados');showPage('inicio');
+}
+
+// ── MERCADO PAGO ──────────────────────────────────────────────────────────────
+const MP_CLIENT_ID   = '6627200768956551';
+const MP_REDIRECT_URI= 'https://irqsdbvcettmcdfwlvsk.supabase.co/functions/v1/mp-auth-callback';
+const MP_SYNC_URL    = 'https://irqsdbvcettmcdfwlvsk.supabase.co/functions/v1/mp-sync';
+
+async function renderMPCard(){
+  if(!sbHouseholdId) return;
+  const {data:mpToken}=await sb.from('mp_tokens').select('mp_user_id,updated_at,person_local_id').eq('household_id',sbHouseholdId).maybeSingle();
+  const connected=!!mpToken;
+  document.getElementById('mpConnectedInfo').style.display=connected?'block':'none';
+  document.getElementById('mpCardContent').style.display=connected?'none':'block';
+  if(connected&&mpToken.updated_at){
+    const d=new Date(mpToken.updated_at);
+    document.getElementById('mpLastSync').textContent='Última sincronización: '+d.toLocaleDateString('es-AR')+' '+d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+  }
+  // Populat person picker
+  const picker=document.getElementById('mpPersonPicker');
+  if(picker){
+    picker.innerHTML=people.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+    document.getElementById('mpPersonSelect').style.display=people.length>1?'block':'none';
+  }
+}
+
+function connectMP(){
+  if(!sbHouseholdId){toast('⚠️ Necesitás un hogar para conectar MP');return;}
+  const picker=document.getElementById('mpPersonPicker');
+  const personId=picker?.value||(people[0]?.id||'p1');
+  const state=encodeURIComponent(`${sbHouseholdId}|${personId}`);
+  const authUrl=`https://auth.mercadopago.com/authorization?client_id=${MP_CLIENT_ID}&response_type=code&platform_id=mp&redirect_uri=${encodeURIComponent(MP_REDIRECT_URI)}&state=${state}`;
+  window.location.href=authUrl;
+}
+
+async function syncMP(){
+  const btn=document.getElementById('mpSyncBtn');
+  if(btn){btn.textContent='🔄 Sincronizando...';btn.disabled=true;}
+  try{
+    const {data:{session}}=await sb.auth.getSession();
+    if(!session){toast('❌ No hay sesión activa');return;}
+    const res=await fetch(MP_SYNC_URL,{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+session.access_token,'Content-Type':'application/json'}
+    });
+    if(!res.ok){toast('❌ Error del servidor ('+res.status+')');return;}
+    const result=await res.json();
+    if(result.error){toast('❌ '+result.error);return;}
+    if(!result.connected){toast('⚠️ Mercado Pago no está conectado');return;}
+    if(result.synced>0){
+      const n=result.synced;
+      toast('✅ '+n+' transacción'+(n===1?'':'es')+' importada'+(n===1?'':'s')+'!');
+      await loadFromSupabase();
+      initApp();
+    } else {
+      toast('✅ Todo al día — sin transacciones nuevas');
+    }
+    await renderMPCard();
+  }catch(e){
+    console.error('syncMP:',e);
+    toast('❌ Error de conexión');
+  }finally{
+    if(btn){btn.textContent='🔄 Sincronizar ahora';btn.disabled=false;}
+  }
+}
+
+async function disconnectMP(){
+  if(!confirm('¿Desconectar Mercado Pago? Tus transacciones importadas no se borrarán.'))return;
+  await sb.from('mp_tokens').delete().eq('household_id',sbHouseholdId);
+  toast('🔌 Mercado Pago desconectado');
+  await renderMPCard();
+}
+
+function checkMPCallback(){
+  const params=new URLSearchParams(window.location.search);
+  if(params.get('mp_connected')==='true'){
+    window.history.replaceState({},'',window.location.pathname);
+    toast('✅ Mercado Pago conectado!');
+    // Auto-sync después de conectar
+    setTimeout(()=>syncMP(),800);
+  }
+  if(params.get('mp_error')){
+    window.history.replaceState({},'',window.location.pathname);
+    const errMap={missing_params:'Faltan parámetros',token_exchange:'Error al obtener token',db_error:'Error al guardar',invalid_state:'Estado inválido'};
+    toast('❌ Error MP: '+(errMap[params.get('mp_error')]||params.get('mp_error')));
+  }
 }
 
 // ── START ─────────────────────────────────────────────────────────────────────
