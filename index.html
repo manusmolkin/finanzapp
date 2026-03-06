@@ -210,6 +210,11 @@
   <div style="background:var(--card);border-radius:18px;padding:22px;width:100%;max-width:370px;box-shadow:0 8px 32px rgba(0,0,0,.18)">
     <div style="font-size:1.1rem;font-weight:800;margin-bottom:4px">✏️ Editar transacción</div>
     <div style="font-size:.75rem;color:var(--text-light);margin-bottom:14px" id="editTxDesc"></div>
+    <label style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-light);display:block;margin-bottom:4px">Tipo</label>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button id="editTypeGasto" onclick="setEditType('gasto')" style="flex:1;padding:9px;border-radius:11px;border:2px solid var(--border);font-weight:700;font-size:.85rem;cursor:pointer">💸 Gasto</button>
+      <button id="editTypeIngreso" onclick="setEditType('ingreso')" style="flex:1;padding:9px;border-radius:11px;border:2px solid var(--border);font-weight:700;font-size:.85rem;cursor:pointer">💰 Ingreso</button>
+    </div>
     <label style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-light);display:block;margin-bottom:4px">Categoría</label>
     <select id="editCatSel" style="width:100%;padding:10px 12px;font-size:.9rem;border:2px solid var(--border);border-radius:11px;background:var(--bg);color:var(--text);margin-bottom:14px"></select>
     <div id="editMerchantSec" style="display:none;background:var(--bg);border-radius:11px;padding:12px;margin-bottom:14px">
@@ -1887,7 +1892,21 @@ function clearData(){
 }
 
 // ── EDICIÓN DE TRANSACCIONES ──────────────────────────────────────────────────
-let editTxId=null;
+let editTxId=null, editTxType=null;
+
+function setEditType(type){
+  editTxType=type;
+  const bg=getComputedStyle(document.documentElement).getPropertyValue('--primary').trim()||'#6c63ff';
+  const gBtn=document.getElementById('editTypeGasto');
+  const iBtn=document.getElementById('editTypeIngreso');
+  if(type==='gasto'){
+    gBtn.style.background='var(--danger)';gBtn.style.color='#fff';gBtn.style.borderColor='var(--danger)';
+    iBtn.style.background='';iBtn.style.color='';iBtn.style.borderColor='var(--border)';
+  }else{
+    iBtn.style.background='#00b300';iBtn.style.color='#fff';iBtn.style.borderColor='#00b300';
+    gBtn.style.background='';gBtn.style.color='';gBtn.style.borderColor='var(--border)';
+  }
+}
 
 function extractMerchantKey(note){
   if(!note)return'';
@@ -1898,6 +1917,8 @@ function extractMerchantKey(note){
 function openEditTx(id){
   const t=txs.find(x=>x.id===id);if(!t)return;
   editTxId=id;
+  // Tipo
+  setEditType(t.type||'gasto');
   // Desc
   document.getElementById('editTxDesc').textContent=(t.note||t.category)+' · '+new Date(t.date+'T12:00:00').toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'});
   // Categoria selector
@@ -1932,7 +1953,9 @@ function closeEditTx(){
 async function saveEditTx(){
   const t=txs.find(x=>x.id===editTxId);if(!t)return;
   const newCat=document.getElementById('editCatSel').value;
+  const newType=editTxType||t.type;
   t.category=newCat;
+  t.type=newType;
   // Merchant rule
   const mSec=document.getElementById('editMerchantSec');
   if(mSec.style.display!=='none'){
@@ -1948,10 +1971,10 @@ async function saveEditTx(){
   }
   localStorage.setItem('fa_tx',JSON.stringify(txs));
   if(sbHouseholdId){
-    try{await sb.from('transactions').update({category:newCat}).eq('id',editTxId);}catch(e){console.warn('editTx:',e);}
+    try{await sb.from('transactions').update({category:newCat,type:newType}).eq('id',editTxId);}catch(e){console.warn('editTx:',e);}
   }
-  closeEditTx();renderHist();renderDash();
-  toast('✅ Categoría actualizada');
+  closeEditTx();renderHist();renderDash();renderRep();
+  toast('✅ Transacción actualizada');
 }
 
 async function applyMerchantRules(newTxs){
