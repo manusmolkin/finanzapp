@@ -1406,9 +1406,13 @@ function renderHouseholdSettings(){
   sb.from('households').select('name,invite_code').eq('id',sbHouseholdId).single().then(({data})=>{
     if(!data)return;
     el.innerHTML=`
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <span style="font-size:.88rem;font-weight:700">${data.name}</span>
-        <span style="font-size:.72rem;color:var(--text-light)">${sbUser?.email||''}</span>
+      <div style="margin-bottom:10px">
+        <div style="font-size:.62rem;color:var(--text-light);font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Nombre del hogar</div>
+        <div style="display:flex;gap:6px">
+          <input type="text" id="householdNameInp" value="${data.name}" style="flex:1;padding:8px 10px;font-size:.9rem;font-weight:600;border:2px solid var(--border);border-radius:11px">
+          <button class="rfbtn" onclick="saveHouseholdName()">Guardar</button>
+        </div>
+        <div style="font-size:.7rem;color:var(--text-light);margin-top:4px">${sbUser?.email||''}</div>
       </div>
       <div style="background:var(--bg);border-radius:10px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <div>
@@ -1422,6 +1426,15 @@ function renderHouseholdSettings(){
 }
 function copyInviteCode(code){
   navigator.clipboard?.writeText(code).then(()=>toast('📋 Código copiado!')).catch(()=>toast('Código: '+code));
+}
+async function saveHouseholdName(){
+  const inp=document.getElementById('householdNameInp');
+  if(!inp||!sbHouseholdId)return;
+  const name=inp.value.trim();
+  if(!name){toast('⚠️ Ingresá un nombre');return;}
+  const {error}=await sb.from('households').update({name}).eq('id',sbHouseholdId);
+  if(error){toast('❌ No se pudo guardar');return;}
+  toast('✅ Nombre actualizado');
 }
 
 // ── COTIZACIONES (API) ────────────────────────────────────────────────────────
