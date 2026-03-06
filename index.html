@@ -100,7 +100,7 @@
     .dleg{flex:1;display:flex;flex-direction:column;gap:5px}
     .legitem{display:flex;align-items:center;gap:6px;font-size:.71rem}
     .legdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-    .legname{flex:1;color:var(--text-light)}.legval{font-weight:700}
+    .legname{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:var(--text-light)}.legval{font-weight:700;flex-shrink:0}
 
     /* Person pills */
     .ppill{border-radius:20px;padding:4px 12px;font-size:.8rem;font-weight:700}
@@ -1717,13 +1717,13 @@ function renderDash(){
   }).join('');
 
   // Top cats
-  const ct={};g.forEach(t=>{const k=t.category.replace(/^[^\s]+\s/,'');ct[k]=(ct[k]||0)+t.amount});
+  const ct={};g.forEach(t=>{const k=catName(t.category);ct[k]=(ct[k]||0)+t.amount});
   const sc=Object.entries(ct).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const catEl=document.getElementById('topCats');
   if(!sc.length){catEl.innerHTML='<div class="empty"><div class="ei">📊</div><p>Agregá gastos para ver tus categorías</p></div>';return}
   const mx2=sc[0][1],ckeys=Object.keys(CATS);
   catEl.innerHTML='<div class="bchart">'+sc.map(([k,v],i)=>{
-    const ci=ckeys.findIndex(c=>c.replace(/^[^\s]+\s/,'')===k);
+    const ci=ckeys.findIndex(c=>catName(c)===k);
     const col=CCOLORS[ci>=0?ci:i%CCOLORS.length];
     return`<div class="bitem"><span class="blabel">${k}</span><div class="btrack"><div class="bfill" style="width:${Math.round(v/mx2*100)}%;background:${col}"></div></div><span class="bval">${fARS(v)}</span></div>`;
   }).join('')+'</div>';
@@ -1815,7 +1815,7 @@ function renderRep(){
   segs+=`<text x="${cx}" y="${cy+11}" text-anchor="middle" font-size="8" fill="#64748b">gastos</text>`;
   const leg=sorted.slice(0,6).map(([cat,val],i)=>{
     const col=CCOLORS[ckeys.findIndex(k=>k===cat)%CCOLORS.length]||CCOLORS[i%CCOLORS.length];
-    return`<div class="legitem"><div class="legdot" style="background:${col}"></div><span class="legname">${catName(cat).slice(0,18)}</span><span class="legval">${Math.round(val/total*100)}%</span></div>`;
+    return`<div class="legitem"><div class="legdot" style="background:${col}"></div><span class="legname">${catName(cat)}</span><span class="legval">${Math.round(val/total*100)}%</span></div>`;
   }).join('');
   document.getElementById('donutCon').innerHTML=`<svg width="${sz}" height="${sz}" style="flex-shrink:0">${segs}</svg><div class="dleg">${leg}</div>`;
 
