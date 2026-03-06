@@ -8,6 +8,7 @@
   <meta name="apple-mobile-web-app-title" content="FinanzApp">
   <meta name="theme-color" content="#4f46e5">
   <link rel="manifest" href="./manifest.json">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <title>FinanzApp 💰</title>
   <style>
     :root {
@@ -204,6 +205,69 @@
   </div>
 </div>
 
+<!-- ═══ AUTH OVERLAY ═══ -->
+<div id="authOverlay" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:500;overflow-y:auto;align-items:flex-start;justify-content:center;padding:28px 16px">
+  <div style="width:100%;max-width:380px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:24px;padding-top:20px">
+      <div style="font-size:2.8rem;line-height:1">💰</div>
+      <div style="font-size:1.45rem;font-weight:800;color:var(--primary);margin-top:6px">FinanzApp</div>
+      <div style="font-size:.78rem;color:var(--text-light);margin-top:3px">Finanzas del hogar</div>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="authViewLogin">
+      <div class="card">
+        <div class="ctitle">Iniciar sesión</div>
+        <div class="fgroup"><label class="flabel">Email</label><input type="email" id="authEmail" placeholder="tu@email.com" inputmode="email" autocomplete="email"></div>
+        <div class="fgroup"><label class="flabel">Contraseña</label><input type="password" id="authPass" placeholder="••••••••" autocomplete="current-password"></div>
+        <div id="authError" style="color:var(--danger);font-size:.78rem;margin-bottom:10px;display:none"></div>
+        <button class="btnp" onclick="doLogin()">Entrar</button>
+        <div style="text-align:center;margin-top:14px;font-size:.82rem;color:var(--text-light)">
+          ¿Primera vez? <button onclick="showAuthRegister()" style="background:none;border:none;color:var(--primary);font-weight:700;cursor:pointer;font-size:.82rem">Crear cuenta</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- REGISTER -->
+    <div id="authViewRegister" style="display:none">
+      <div class="card">
+        <div class="ctitle">Crear cuenta</div>
+        <div class="fgroup"><label class="flabel">Email</label><input type="email" id="authEmailR" placeholder="tu@email.com" inputmode="email" autocomplete="email"></div>
+        <div class="fgroup"><label class="flabel">Contraseña</label><input type="password" id="authPassR" placeholder="Mínimo 6 caracteres" autocomplete="new-password"></div>
+        <div id="authErrorR" style="color:var(--danger);font-size:.78rem;margin-bottom:10px;display:none"></div>
+        <button class="btnp" onclick="doRegister()">Crear cuenta</button>
+        <div style="text-align:center;margin-top:14px;font-size:.82rem;color:var(--text-light)">
+          ¿Ya tenés cuenta? <button onclick="showAuthLogin()" style="background:none;border:none;color:var(--primary);font-weight:700;cursor:pointer;font-size:.82rem">Iniciar sesión</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- HOUSEHOLD SETUP -->
+    <div id="authViewHousehold" style="display:none">
+      <div class="card">
+        <div class="ctitle">Configurar tu hogar</div>
+        <p style="font-size:.82rem;color:var(--text-light);margin-bottom:16px;line-height:1.6">Un "hogar" es el espacio compartido entre vos y las personas con quienes manejás finanzas juntos.</p>
+        <div class="fgroup">
+          <label class="flabel">Nombre del hogar</label>
+          <input type="text" id="householdName" placeholder="Mi hogar, Casa de Manu..." value="Mi Hogar">
+        </div>
+        <button class="btnp" onclick="doCreateHousehold()">✨ Crear hogar nuevo</button>
+        <div style="display:flex;align-items:center;gap:10px;margin:16px 0">
+          <div style="flex:1;height:1px;background:var(--border)"></div>
+          <span style="font-size:.75rem;color:var(--text-light)">o</span>
+          <div style="flex:1;height:1px;background:var(--border)"></div>
+        </div>
+        <div class="fgroup">
+          <label class="flabel">Unirme a un hogar existente</label>
+          <input type="text" id="householdCode" placeholder="Código (ej: ABC-1234)" style="text-transform:uppercase;letter-spacing:.1em">
+        </div>
+        <button class="btnp" style="background:#fff;color:var(--primary);border:2px solid var(--primary);box-shadow:none" onclick="doJoinHousehold()">Unirme con código</button>
+        <div id="householdError" style="color:var(--danger);font-size:.78rem;margin-top:10px;display:none"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ INICIO ═══ -->
 <div class="page active" id="page-inicio">
   <div class="content">
@@ -309,6 +373,13 @@
 <!-- ═══ AJUSTES ═══ -->
 <div class="page" id="page-ajustes">
   <div class="content">
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div class="ctitle" style="margin:0">🏠 Tu Hogar</div>
+        <button class="rfbtn" style="color:var(--danger);border-color:var(--danger)" onclick="doLogout()">Cerrar sesión</button>
+      </div>
+      <div id="householdInfo"><div style="font-size:.78rem;color:var(--text-light)">Cargando…</div></div>
+    </div>
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div class="ctitle" style="margin:0">Personas</div>
@@ -503,6 +574,12 @@
 </nav>
 
 <script>
+// ── SUPABASE ─────────────────────────────────────────────────────────────────
+const SB_URL='https://irqsdbvcettmcdfwlvsk.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlycXNkYnZjZXR0bWNkZndsdnNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MDQ4MzQsImV4cCI6MjA4ODM4MDgzNH0.5A350Dg4EogLjd5cesxjqdb1LczQCZv7VFAUQqqR780';
+const sb=supabase.createClient(SB_URL,SB_KEY);
+let sbUser=null, sbHouseholdId=null;
+
 // ── CATEGORÍAS ───────────────────────────────────────────────────────────────
 const CATS = {
   "🏠 Hogar compartido":    ["Alquiler y expensas","Supermercado","Servicios (luz / agua / gas)","Internet","Limpieza del hogar","Reparaciones","Otros hogar"],
@@ -564,7 +641,7 @@ let econ={
 };
 
 // ── INIT ─────────────────────────────────────────────────────────────────────
-function init(){
+function initApp(){
   const st=localStorage.getItem('fa_tx'), ss=localStorage.getItem('fa_sett'), se=localStorage.getItem('fa_econ'), sg=localStorage.getItem('fa_goals');
   if(st) try{txs=JSON.parse(st)}catch(e){}
   if(ss) try{sett={...sett,...JSON.parse(ss)}}catch(e){}
@@ -622,6 +699,7 @@ function saveSett(){
   sett.inflaA=parseFloat(document.getElementById('sInflaA').value)||0;
   sett.convType=document.getElementById('sConvType')?.value||'blue';
   localStorage.setItem('fa_sett',JSON.stringify(sett));
+  sbSaveSett();
   applySett();
   renderEcon();
 }
@@ -759,6 +837,7 @@ function loadPeople(){
 }
 function savePeople(){
   localStorage.setItem('fa_people',JSON.stringify(people));
+  sbSavePeople();
 }
 function addPerson(){
   const id='p'+Date.now();
@@ -867,8 +946,10 @@ async function saveTx(){
     origCur=curCurrency;
   }
 
-  txs.push({id:Date.now().toString(),date:dt,type:curType,amount:arsAmt,origAmt,origCur,person:curPerson,category:cat,subcategory:sub||'',note});
+  const newTx={id:crypto.randomUUID(),date:dt,type:curType,amount:arsAmt,origAmt,origCur,person:curPerson,category:cat,subcategory:sub||'',note};
+  txs.push(newTx);
   localStorage.setItem('fa_tx',JSON.stringify(txs));
+  sbSaveTx(newTx);
   document.getElementById('inpAmt').value='';
   document.getElementById('inpNote').value='';
   document.getElementById('selCat').value='';
@@ -953,8 +1034,9 @@ function saveGoal(){
   if(!desc){toast('⚠️ Ingresá una descripción');return}
   if(!amount||amount<=0){toast('⚠️ Ingresá un monto válido');return}
   if(!months||months<=0){toast('⚠️ Ingresá un plazo en meses');return}
-  goals.push({id:Date.now().toString(),type,desc,amount,currency,months,created:new Date().toISOString()});
+  goals.push({id:crypto.randomUUID(),type,desc,amount,currency,months,created:new Date().toISOString()});
   localStorage.setItem('fa_goals',JSON.stringify(goals));
+  sbSaveGoals();
   document.getElementById('gDesc').value='';
   document.getElementById('gAmount').value='';
   document.getElementById('gMonths').value='';
@@ -965,6 +1047,7 @@ function saveGoal(){
 function deleteGoal(id){
   goals=goals.filter(g=>g.id!==id);
   localStorage.setItem('fa_goals',JSON.stringify(goals));
+  sbSaveGoals();
   renderGoals();
   toast('🗑️ Meta eliminada');
 }
@@ -1113,6 +1196,232 @@ function renderChatMsgs(){
   if(!chatHistory.length){box.innerHTML=welcome;return;}
   box.innerHTML=welcome+chatHistory.map(m=>`<div class="cmsg ${m.role}">${m.content}</div>`).join('');
   box.scrollTop=box.scrollHeight;
+}
+
+// ── SUPABASE AUTH & SYNC ──────────────────────────────────────────────────────
+
+// — Mostrar vistas de auth —
+function showAuthLogin(){
+  const o=document.getElementById('authOverlay');o.style.display='flex';
+  document.getElementById('authViewLogin').style.display='';
+  document.getElementById('authViewRegister').style.display='none';
+  document.getElementById('authViewHousehold').style.display='none';
+  document.getElementById('authError').style.display='none';
+}
+function showAuthRegister(){
+  const o=document.getElementById('authOverlay');o.style.display='flex';
+  document.getElementById('authViewLogin').style.display='none';
+  document.getElementById('authViewRegister').style.display='';
+  document.getElementById('authViewHousehold').style.display='none';
+  document.getElementById('authErrorR').style.display='none';
+}
+function showAuthHousehold(){
+  const o=document.getElementById('authOverlay');o.style.display='flex';
+  document.getElementById('authViewLogin').style.display='none';
+  document.getElementById('authViewRegister').style.display='none';
+  document.getElementById('authViewHousehold').style.display='';
+  document.getElementById('householdError').style.display='none';
+}
+function showApp(){
+  document.getElementById('authOverlay').style.display='none';
+}
+
+// — Check auth al arrancar —
+async function checkAuth(){
+  try{
+    const {data:{session}}=await sb.auth.getSession();
+    if(!session){showAuthLogin();return;}
+    sbUser=session.user;
+    const {data:profile}=await sb.from('profiles').select('household_id').eq('id',sbUser.id).single();
+    if(profile&&profile.household_id){
+      sbHouseholdId=profile.household_id;
+      await loadFromSupabase();
+    }
+    initApp();
+    showApp();
+    renderHouseholdSettings();
+    if(!profile||!profile.household_id) showAuthHousehold();
+  }catch(e){
+    console.warn('checkAuth error:',e);
+    initApp(); showApp();
+  }
+}
+
+// — Login —
+async function doLogin(){
+  const email=document.getElementById('authEmail').value.trim();
+  const pass=document.getElementById('authPass').value;
+  const err=document.getElementById('authError');err.style.display='none';
+  if(!email||!pass){err.textContent='⚠️ Completá email y contraseña.';err.style.display='block';return;}
+  const btn=document.querySelector('#authViewLogin .btnp');
+  btn.textContent='Entrando…';btn.disabled=true;
+  const {error}=await sb.auth.signInWithPassword({email,password:pass});
+  btn.textContent='Entrar';btn.disabled=false;
+  if(error){err.textContent='❌ '+error.message;err.style.display='block';return;}
+  await checkAuth();
+}
+
+// — Register —
+async function doRegister(){
+  const email=document.getElementById('authEmailR').value.trim();
+  const pass=document.getElementById('authPassR').value;
+  const err=document.getElementById('authErrorR');err.style.display='none';
+  if(!email||!pass){err.textContent='⚠️ Completá email y contraseña.';err.style.display='block';return;}
+  if(pass.length<6){err.textContent='⚠️ La contraseña debe tener al menos 6 caracteres.';err.style.display='block';return;}
+  const btn=document.querySelector('#authViewRegister .btnp');
+  btn.textContent='Creando…';btn.disabled=true;
+  const {error}=await sb.auth.signUp({email,password:pass});
+  btn.textContent='Crear cuenta';btn.disabled=false;
+  if(error){err.textContent='❌ '+error.message;err.style.display='block';return;}
+  sbUser=(await sb.auth.getUser()).data.user;
+  showAuthHousehold();
+}
+
+// — Crear hogar —
+async function doCreateHousehold(){
+  const name=document.getElementById('householdName').value.trim()||'Mi Hogar';
+  const err=document.getElementById('householdError');err.style.display='none';
+  const btn=document.querySelector('#authViewHousehold .btnp');
+  btn.textContent='Creando…';btn.disabled=true;
+  const {data:hid,error}=await sb.rpc('create_household',{p_name:name});
+  btn.textContent='✨ Crear hogar nuevo';btn.disabled=false;
+  if(error){err.textContent='❌ '+error.message;err.style.display='block';return;}
+  sbHouseholdId=hid;
+  await migrateLocalData();
+  showApp();
+  renderHouseholdSettings();
+  toast('🏠 ¡Hogar creado!');
+}
+
+// — Unirse a hogar —
+async function doJoinHousehold(){
+  const code=document.getElementById('householdCode').value.trim().toUpperCase();
+  const err=document.getElementById('householdError');err.style.display='none';
+  if(!code){err.textContent='⚠️ Ingresá el código del hogar.';err.style.display='block';return;}
+  const btns=document.querySelectorAll('#authViewHousehold .btnp');
+  const btn=btns[btns.length-1];
+  btn.textContent='Uniéndome…';btn.disabled=true;
+  const {data:hid,error}=await sb.rpc('join_household_by_code',{p_code:code});
+  btn.textContent='Unirme con código';btn.disabled=false;
+  if(error){err.textContent='❌ Código inválido. Revisá y volvé a intentar.';err.style.display='block';return;}
+  sbHouseholdId=hid;
+  await loadFromSupabase();
+  showApp();
+  renderDash();renderHouseholdSettings();
+  toast('🏠 ¡Te uniste al hogar!');
+}
+
+// — Logout —
+async function doLogout(){
+  if(!confirm('¿Cerrar sesión?'))return;
+  await sb.auth.signOut();
+  sbUser=null;sbHouseholdId=null;
+  showAuthLogin();
+}
+
+// — Migrar datos locales a Supabase (al crear hogar) —
+async function migrateLocalData(){
+  const lp=localStorage.getItem('fa_people'),lt=localStorage.getItem('fa_tx'),
+        ls=localStorage.getItem('fa_sett'),lg=localStorage.getItem('fa_goals');
+  if(lp){try{people=JSON.parse(lp)}catch(e){}}
+  if(lt){try{txs=JSON.parse(lt)}catch(e){}}
+  if(ls){try{sett={...sett,...JSON.parse(ls)}}catch(e){}}
+  if(lg){try{goals=JSON.parse(lg)}catch(e){}}
+  await sbSavePeople();
+  for(const t of txs) await sbSaveTx(t);
+  await sbSaveSett();
+  await sbSaveGoals();
+}
+
+// — Cargar todos los datos del hogar desde Supabase —
+async function loadFromSupabase(){
+  if(!sbHouseholdId)return;
+  const hid=sbHouseholdId;
+  const [{data:ppl},{data:txData},{data:settData},{data:goalData}]=await Promise.all([
+    sb.from('people').select('*').eq('household_id',hid).order('sort_order'),
+    sb.from('transactions').select('*').eq('household_id',hid),
+    sb.from('settings').select('*').eq('household_id',hid).single(),
+    sb.from('goals').select('*').eq('household_id',hid)
+  ]);
+  if(ppl&&ppl.length>0){
+    people=ppl.map(p=>({id:p.local_id,name:p.name,income:p.income||0}));
+    localStorage.setItem('fa_people',JSON.stringify(people));
+  }
+  if(txData){
+    txs=txData.map(t=>({id:t.id,date:t.date,type:t.type,amount:t.amount,
+      origAmt:t.orig_amt,origCur:t.orig_cur,person:t.person_id,
+      category:t.category,subcategory:t.subcategory||'',note:t.note||''}));
+    localStorage.setItem('fa_tx',JSON.stringify(txs));
+  }
+  if(settData&&settData.data){sett={...sett,...settData.data};localStorage.setItem('fa_sett',JSON.stringify(sett));}
+  if(goalData){
+    goals=goalData.map(g=>({id:g.id,type:g.type,desc:g.description,
+      amount:g.amount,currency:g.currency,months:g.months,created:g.created_at}));
+    localStorage.setItem('fa_goals',JSON.stringify(goals));
+  }
+}
+
+// — Guardar / sincronizar en Supabase —
+async function sbSaveTx(tx){
+  if(!sbHouseholdId)return;
+  try{await sb.from('transactions').upsert({
+    id:tx.id,household_id:sbHouseholdId,person_id:tx.person,type:tx.type,
+    amount:tx.amount,orig_amt:tx.origAmt||tx.amount,orig_cur:tx.origCur||'ARS',
+    category:tx.category,subcategory:tx.subcategory||'',date:tx.date,note:tx.note||''
+  });}catch(e){console.warn('sbSaveTx:',e);}
+}
+async function sbDeleteTx(id){
+  if(!sbHouseholdId)return;
+  try{await sb.from('transactions').delete().eq('id',id).eq('household_id',sbHouseholdId);}catch(e){}
+}
+async function sbSaveSett(){
+  if(!sbHouseholdId)return;
+  const s={...sett};delete s.apiKey;
+  try{await sb.from('settings').upsert({household_id:sbHouseholdId,data:s,updated_at:new Date().toISOString()});}catch(e){}
+}
+async function sbSavePeople(){
+  if(!sbHouseholdId)return;
+  try{
+    await sb.from('people').delete().eq('household_id',sbHouseholdId);
+    if(people.length>0)await sb.from('people').insert(
+      people.map((p,i)=>({household_id:sbHouseholdId,local_id:p.id,name:p.name,income:p.income||0,sort_order:i}))
+    );
+  }catch(e){console.warn('sbSavePeople:',e);}
+}
+async function sbSaveGoals(){
+  if(!sbHouseholdId)return;
+  try{
+    await sb.from('goals').delete().eq('household_id',sbHouseholdId);
+    if(goals.length>0)await sb.from('goals').insert(
+      goals.map(g=>({id:g.id,household_id:sbHouseholdId,type:g.type,
+        description:g.desc,amount:g.amount,currency:g.currency,months:g.months}))
+    );
+  }catch(e){console.warn('sbSaveGoals:',e);}
+}
+
+// — Render info del hogar en Settings —
+function renderHouseholdSettings(){
+  const el=document.getElementById('householdInfo');if(!el)return;
+  if(!sbHouseholdId){el.innerHTML='<div style="font-size:.78rem;color:var(--text-light)">Sin conexión a la nube.</div>';return;}
+  sb.from('households').select('name,invite_code').eq('id',sbHouseholdId).single().then(({data})=>{
+    if(!data)return;
+    el.innerHTML=`
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <span style="font-size:.88rem;font-weight:700">${data.name}</span>
+        <span style="font-size:.72rem;color:var(--text-light)">${sbUser?.email||''}</span>
+      </div>
+      <div style="background:var(--bg);border-radius:10px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div>
+          <div style="font-size:.62rem;color:var(--text-light);font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px">Código de invitación</div>
+          <div style="font-size:1.15rem;font-weight:800;letter-spacing:.14em;color:var(--primary)">${data.invite_code}</div>
+        </div>
+        <button class="rfbtn" onclick="copyInviteCode('${data.invite_code}')">📋 Copiar</button>
+      </div>
+      <div style="font-size:.71rem;color:var(--text-light)">Compartí este código para que otra persona se una a tu hogar.</div>`;
+  });
+}
+function copyInviteCode(code){
+  navigator.clipboard?.writeText(code).then(()=>toast('📋 Código copiado!')).catch(()=>toast('Código: '+code));
 }
 
 // ── COTIZACIONES (API) ────────────────────────────────────────────────────────
@@ -1374,6 +1683,7 @@ function delTx(id){
   if(!confirm('¿Eliminar esta transacción?'))return;
   txs=txs.filter(t=>t.id!==id);
   localStorage.setItem('fa_tx',JSON.stringify(txs));
+  sbDeleteTx(id);
   renderHist();toast('🗑️ Eliminada');
 }
 function txItem(t,del=false){
@@ -1512,7 +1822,7 @@ function clearData(){
 }
 
 // ── START ─────────────────────────────────────────────────────────────────────
-init();
+checkAuth();
 
 // ── SERVICE WORKER ─────────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
