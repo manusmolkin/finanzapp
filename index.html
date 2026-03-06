@@ -636,20 +636,20 @@ let sbUser=null, sbHouseholdId=null;
 
 // ── CATEGORÍAS ───────────────────────────────────────────────────────────────
 const CATS = {
-  "🏠 Hogar compartido":    ["Alquiler y expensas","Supermercado","Servicios (luz / agua / gas)","Internet","Limpieza del hogar","Reparaciones","Otros hogar"],
-  "🩺 Salud":               ["Prepaga / Obra social","Médico / Consultas","Terapia / Psicólogo","Farmacia / Medicamentos","Odontología","Oftalmología","Nutricionista","Kinesiología","Otros salud"],
-  "🏃 Deporte y fitness":   ["Gimnasio","Tenis","Fútbol","Pádel","Pilates / Yoga","Natación","Running","Equipamiento deportivo","Otros deporte"],
-  "🚗 Transporte":          ["Taxi / Uber / Cabify","Combustible","Estacionamiento","Transporte público (SUBE)","Peajes","Mantenimiento del auto","Seguro del auto","Nafta","Otros transporte"],
-  "📱 Tecnología":          ["Teléfono móvil (plan)","Netflix","Spotify","Disney+ / Star+","HBO Max","Amazon Prime","Otros streaming","Software y apps","Hardware / Equipos","Otros tecnología"],
-  "🌟 Ocio y entretenimiento":["Restaurantes","Bares","Juntada / Salida con amigxs","Cine","Teatro","Espectáculos / Recitales","Viajes","Hobbies","Libros","Juegos / Videojuegos","Otros ocio"],
-  "🛍️ Compras personales":  ["Ropa","Calzado","Accesorios","Peluquería / Barber","Belleza / Cosméticos","Perfumería","Otros compras"],
-  "📚 Educación":           ["Cursos / Capacitaciones","Universidad / Instituto","Idiomas","Libros académicos","Suscripciones educativas","Otros educación"],
-  "🥗 Alimentación personal":["Supermercado","Dietética","Verdulería","Panadería","Almuerzo en el trabajo","Cafeterías / Cafés","Delivery (PedidosYa / Rappi)","Kiosco / Snacks","Otros alimentación"],
-  "🎁 Social y regalos":    ["Regalos","Cumpleaños","Eventos / Reuniones","Donaciones","Otros social"],
-  "⚠️ Imprevistos":         ["Gastos médicos urgentes","Arreglos urgentes","Multas","Pérdidas / Robos","Otros imprevistos"],
-  "📈 Ahorro e inversiones": ["Plazo fijo ARS","Dólares / MEP","Acciones / FCI","CEDEAR","Criptomonedas","Propiedades","Otros inversiones"],
-  "💼 Trabajo / Freelance": ["Materiales de trabajo","Coworking","Software profesional","Marketing personal","Gastos de representación","Otros trabajo"],
-  "💰 Ingreso":             ["Sueldo / Haberes","Freelance / Honorarios","Alquiler cobrado","Venta de activos","Regalo / Extra","Devolución","Bono","Otros ingreso"]
+  "🏠 Hogar compartido":    ["🏡 Alquiler y expensas","🛒 Supermercado","💡 Servicios (luz / agua / gas)","🌐 Internet","🧹 Limpieza del hogar","🔧 Reparaciones","📦 Otros hogar"],
+  "🩺 Salud":               ["🏥 Prepaga / Obra social","👨‍⚕️ Médico / Consultas","🧠 Terapia / Psicólogo","💊 Farmacia / Medicamentos","🦷 Odontología","👁️ Oftalmología","🥦 Nutricionista","🦵 Kinesiología","🩺 Otros salud"],
+  "🏃 Deporte y fitness":   ["🏋️ Gimnasio","🎾 Tenis","⚽ Fútbol","🏓 Pádel","🧘 Pilates / Yoga","🏊 Natación","👟 Running","🎽 Equipamiento deportivo","🏃 Otros deporte"],
+  "🚗 Transporte":          ["🚕 Taxi / Uber / Cabify","⛽ Combustible","🅿️ Estacionamiento","🚌 Transporte público (SUBE)","🛣️ Peajes","🔩 Mantenimiento del auto","🛡️ Seguro del auto","⛽ Nafta","🚗 Otros transporte"],
+  "📱 Tecnología":          ["📱 Teléfono móvil (plan)","🎬 Netflix","🎵 Spotify","⭐ Disney+ / Star+","📺 HBO Max","📦 Amazon Prime","📡 Otros streaming","💻 Software y apps","🖥️ Hardware / Equipos","📱 Otros tecnología"],
+  "🌟 Ocio y entretenimiento":["🍽️ Restaurantes","🍻 Bares","🎉 Juntada / Salida con amigxs","🎬 Cine","🎭 Teatro","🎤 Espectáculos / Recitales","✈️ Viajes","🎨 Hobbies","📚 Libros","🎮 Juegos / Videojuegos","🌟 Otros ocio"],
+  "🛍️ Compras personales":  ["👗 Ropa","👟 Calzado","👜 Accesorios","✂️ Peluquería / Barber","💅 Belleza / Cosméticos","🌸 Perfumería","🛍️ Otros compras"],
+  "📚 Educación":           ["📖 Cursos / Capacitaciones","🎓 Universidad / Instituto","🗣️ Idiomas","📗 Libros académicos","💻 Suscripciones educativas","📚 Otros educación"],
+  "🥗 Alimentación personal":["🛒 Supermercado","🥬 Dietética","🥦 Verdulería","🥐 Panadería","🍱 Almuerzo en el trabajo","☕ Cafeterías / Cafés","🛵 Delivery (PedidosYa / Rappi)","🍬 Kiosco / Snacks","🥗 Otros alimentación"],
+  "🎁 Social y regalos":    ["🎁 Regalos","🎂 Cumpleaños","🥂 Eventos / Reuniones","❤️ Donaciones","🎁 Otros social"],
+  "⚠️ Imprevistos":         ["🚑 Gastos médicos urgentes","🔨 Arreglos urgentes","🚔 Multas","😢 Pérdidas / Robos","⚠️ Otros imprevistos"],
+  "📈 Ahorro e inversiones": ["🏦 Plazo fijo ARS","💵 Dólares / MEP","📊 Acciones / FCI","🌎 CEDEAR","🪙 Criptomonedas","🏘️ Propiedades","📈 Otros inversiones"],
+  "💼 Trabajo / Freelance": ["🧰 Materiales de trabajo","🏢 Coworking","💻 Software profesional","📣 Marketing personal","🤝 Gastos de representación","💼 Otros trabajo"],
+  "💰 Ingreso":             ["💼 Sueldo / Haberes","🧑‍💻 Freelance / Honorarios","🏠 Alquiler cobrado","💰 Venta de activos","🎁 Regalo / Extra","↩️ Devolución","🎯 Bono","💰 Otros ingreso"]
 };
 const CCOLORS = ['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#84cc16','#ec4899','#14b8a6','#a855f7','#eab308','#64748b','#22d3ee'];
 const PERSON_COLORS = ['#4f46e5','#10b981','#f97316','#ec4899','#8b5cf6','#06b6d4'];
@@ -1757,9 +1757,12 @@ function delTx(id){
 }
 function catEmoji(cat){
   if(!cat)return'💳';
+  // Si la categoría empieza con emoji, usarlo directamente
   if(cat.codePointAt(0)>127)return cat.split(' ')[0];
-  for(const [parent,subs] of Object.entries(CATS)){
-    if(subs.includes(cat))return parent.codePointAt(0)>127?parent.split(' ')[0]:'💳';
+  // Subcategoría sin emoji — buscar en CATS si alguna subcategoría CON emoji la contiene
+  for(const subs of Object.values(CATS)){
+    const match=subs.find(s=>catName(s)===cat||s===cat);
+    if(match&&match.codePointAt(0)>127)return match.split(' ')[0];
   }
   return'💳';
 }
