@@ -216,7 +216,11 @@
       <button id="editTypeIngreso" onclick="setEditType('ingreso')" style="flex:1;padding:9px;border-radius:11px;border:2px solid var(--border);font-weight:700;font-size:.85rem;cursor:pointer">💰 Ingreso</button>
     </div>
     <label style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-light);display:block;margin-bottom:4px">Categoría</label>
-    <select id="editCatSel" style="width:100%;padding:10px 12px;font-size:.9rem;border:2px solid var(--border);border-radius:11px;background:var(--bg);color:var(--text);margin-bottom:14px"></select>
+    <select id="editCatSel" onchange="updateEditSubCats()" style="width:100%;padding:10px 12px;font-size:.9rem;border:2px solid var(--border);border-radius:11px;background:var(--bg);color:var(--text);margin-bottom:10px"></select>
+    <div id="editSubCatWrap" style="display:none;margin-bottom:14px">
+      <label style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-light);display:block;margin-bottom:4px">Subcategoría <span style="font-weight:400;text-transform:none">(opcional)</span></label>
+      <select id="editSubCatSel" style="width:100%;padding:10px 12px;font-size:.9rem;border:2px solid var(--border);border-radius:11px;background:var(--bg);color:var(--text)"></select>
+    </div>
     <div id="editMerchantSec" style="display:none;background:var(--bg);border-radius:11px;padding:12px;margin-bottom:14px">
       <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:.83rem">
         <input type="checkbox" id="editMerchantCb" style="margin-top:2px;width:16px;height:16px;flex-shrink:0">
@@ -1937,20 +1941,24 @@ function openEditTx(id){
   setEditType(t.type||'gasto');
   // Desc
   document.getElementById('editTxDesc').textContent=(t.note||t.category)+' · '+new Date(t.date+'T12:00:00').toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'});
-  // Categoria selector — solo categorías principales con emoji
+  // Determinar categoría principal y subcategoría actuales
   const sel=document.getElementById('editCatSel');
   const mainCats=Object.keys(CATS);
-  // Encontrar categoría principal actual
   let currentMain=t.category;
-  if(t.category.codePointAt(0)<=127){
+  let currentSub=t.subcategory||'';
+  // Si la categoría guardada es una subcategoría (no aparece como clave de CATS), buscar el padre
+  if(!CATS[currentMain]){
     for(const [parent,subs] of Object.entries(CATS)){
-      if(subs.includes(t.category)){currentMain=parent;break;}
+      const match=subs.find(s=>s===currentMain||catName(s)===currentMain||catName(s)===catName(currentMain));
+      if(match){currentMain=parent;if(!currentSub)currentSub=match;break;}
     }
   }
   // Extra options para categorías de MP que no están en CATS
   const extras=['💳 Mercado Pago'];
   const allOptions=[...mainCats,...extras.filter(e=>!mainCats.includes(e))];
   sel.innerHTML=allOptions.map(c=>`<option value="${c}"${currentMain===c?' selected':''}>${c}</option>`).join('');
+  // Poblar subcategorías según la categoría principal seleccionada
+  updateEditSubCats(currentSub);
   // Merchant rule section
   const mSec=document.getElementById('editMerchantSec');
   const mKey=extractMerchantKey(t.note||'');
@@ -1967,12 +1975,25 @@ function closeEditTx(){
   document.getElementById('editTxModal').style.display='none';
   editTxId=null;
 }
+function updateEditSubCats(preselectVal=''){
+  const cat=document.getElementById('editCatSel').value;
+  const wrap=document.getElementById('editSubCatWrap');
+  const subSel=document.getElementById('editSubCatSel');
+  const subs=CATS[cat]||[];
+  if(!subs.length){wrap.style.display='none';return;}
+  subSel.innerHTML=`<option value="">— Sin subcategoría —</option>`
+    +subs.map(s=>`<option value="${s}"${(preselectVal&&(s===preselectVal||catName(s)===catName(preselectVal)))?'selected':''}>${s}</option>`).join('');
+  wrap.style.display='block';
+}
 
 async function saveEditTx(){
   const t=txs.find(x=>x.id===editTxId);if(!t)return;
   const newCat=document.getElementById('editCatSel').value;
   const newType=editTxType||t.type;
+  const subWrap=document.getElementById('editSubCatWrap');
+  const newSub=subWrap.style.display!=='none'?document.getElementById('editSubCatSel').value:'';
   t.category=newCat;
+  t.subcategory=newSub;
   t.type=newType;
   // Merchant rule
   const mSec=document.getElementById('editMerchantSec');
@@ -1989,7 +2010,7 @@ async function saveEditTx(){
   }
   localStorage.setItem('fa_tx',JSON.stringify(txs));
   if(sbHouseholdId){
-    try{await sb.from('transactions').update({category:newCat,type:newType}).eq('id',editTxId);}catch(e){console.warn('editTx:',e);}
+    try{await sb.from('transactions').update({category:newCat,subcategory:newSub,type:newType}).eq('id',editTxId);}catch(e){console.warn('editTx:',e);}
   }
   closeEditTx();renderHist();renderDash();renderRep();
   toast('✅ Transacción actualizada');
