@@ -432,8 +432,9 @@
         </div>
         <div style="font-size:.72rem;color:var(--text-light);margin-bottom:10px" id="mpLastSync">Última sincronización: —</div>
         <button onclick="syncMP()" id="mpSyncBtn" class="rfbtn" style="width:100%">🔄 Sincronizar ahora</button>
-        <div style="margin-top:8px;text-align:center">
+        <div style="margin-top:8px;display:flex;justify-content:center;gap:16px">
           <span style="font-size:.65rem;color:var(--text-light);cursor:pointer;text-decoration:underline" onclick="disconnectMP()">Desconectar</span>
+          <span style="font-size:.65rem;color:#e67e22;cursor:pointer;text-decoration:underline" onclick="cleanAndResyncMP()">🗑️ Limpiar y reimportar desde cero</span>
         </div>
       </div>
     </div>
@@ -1703,7 +1704,10 @@ function getMTx(){return txs.filter(t=>t.date.startsWith(curMonth))}
 function renderDash(){
   const mt=getMTx(),g=mt.filter(t=>t.type==='gasto'),ig=mt.filter(t=>t.type==='ingreso');
   const tg=g.reduce((s,t)=>s+t.amount,0);
-  const ti=totalIncome()||ig.reduce((s,t)=>s+t.amount,0);
+  // Prioridad: transacciones reales registradas este mes.
+  // Si no hay ninguna (ej: app recién configurada), usar sueldo configurado como referencia.
+  const tiTx=ig.reduce((s,t)=>s+t.amount,0);
+  const ti=tiTx||totalIncome();
   const ah=ti-tg;
   const rb=sett.rateBl||1450;
   document.getElementById('stGastos').textContent=fARS(tg);
@@ -2103,6 +2107,26 @@ async function disconnectMP(){
   await sb.from('mp_tokens').delete().eq('household_id',sbHouseholdId);
   toast('🔌 Mercado Pago desconectado');
   await renderMPCard();
+}
+
+async function cleanAndResyncMP(){
+  if(!confirm('⚠️ Esto borrará TODAS las transacciones importadas desde Mercado Pago y las reimportará desde cero.\n\nLas transacciones cargadas manualmente NO se borran.\n\n¿Continuar?'))return;
+  toast('🗑️ Limpiando datos de MP...');
+  // 1. Borrar de localStorage
+  txs=txs.filter(t=>t.source!=='mercadopago');
+  localStorage.setItem('fa_tx',JSON.stringify(txs));
+  // 2. Borrar de Supabase
+  if(sbHouseholdId){
+    try{
+      await sb.from('transactions')
+        .delete()
+        .eq('household_id',sbHouseholdId)
+        .eq('source','mercadopago');
+    }catch(e){console.warn('cleanMP delete:',e);}
+  }
+  renderHist();renderDash();renderRep();
+  // 3. Re-sincronizar con datos limpios
+  setTimeout(()=>syncMP(),600);
 }
 
 function checkMPCallback(){
