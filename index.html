@@ -390,6 +390,7 @@
     </div>
     <div class="card"><div class="ctitle">Gastos por categoría</div><div class="dcon" id="donutCon"><div class="empty" style="width:100%"><div class="ei">🥧</div><p>Sin gastos aún</p></div></div></div>
     <div class="card"><div class="ctitle">Detalle por categoría</div><div id="catBar"><div class="empty"><p>Sin datos</p></div></div></div>
+    <div class="card"><div class="ctitle">Detalle por subcategoría</div><div id="subCatBar"><div class="empty"><p>Sin datos</p></div></div></div>
     <div class="card"><div class="ctitle">Por persona</div><div id="pBreak"></div></div>
     <div class="card">
       <div class="ctitle">Contexto inflacionario 🇦🇷</div>
@@ -1005,7 +1006,7 @@ async function saveTx(){
     origCur=curCurrency;
   }
 
-  const newTx={id:crypto.randomUUID(),date:dt,type:curType,amount:arsAmt,origAmt,origCur,person:curPerson,category:cat,subcategory:sub||'',note};
+  const newTx={id:crypto.randomUUID(),createdAt:new Date().toISOString(),date:dt,type:curType,amount:arsAmt,origAmt,origCur,person:curPerson,category:cat,subcategory:sub||'',note};
   txs.push(newTx);
   localStorage.setItem('fa_tx',JSON.stringify(txs));
   sbSaveTx(newTx);
@@ -1411,7 +1412,8 @@ async function loadFromSupabase(){
   if(txData){
     txs=txData.map(t=>({id:t.id,date:t.date,type:t.type,amount:t.amount,
       origAmt:t.orig_amt,origCur:t.orig_cur,person:t.person_id,
-      category:t.category,subcategory:t.subcategory||'',note:t.note||''}));
+      category:t.category,subcategory:t.subcategory||'',note:t.note||'',
+      source:t.source||'',createdAt:t.created_at||''}));
     localStorage.setItem('fa_tx',JSON.stringify(txs));
   }
   if(settData&&settData.data){sett={...sett,...settData.data};localStorage.setItem('fa_sett',JSON.stringify(sett));}
@@ -1753,7 +1755,7 @@ function renderHist(){
   if(hFilter==='gasto') mt=mt.filter(t=>t.type==='gasto');
   else if(hFilter==='ingreso') mt=mt.filter(t=>t.type==='ingreso');
   else if(hFilter!=='all') mt=mt.filter(t=>t.person===hFilter);
-  const sorted=[...mt].sort((a,b)=>b.date.localeCompare(a.date));
+  const sorted=[...mt].sort((a,b)=>b.date.localeCompare(a.date)||(b.createdAt||'').localeCompare(a.createdAt||''));
   document.getElementById('txList').innerHTML=sorted.length?sorted.map(t=>txItem(t,true)).join(''):'<div class="empty"><div class="ei">📋</div><p>No hay transacciones</p></div>';
 }
 function delTx(id){
@@ -1780,8 +1782,10 @@ function catName(cat){
 }
 
 function txItem(t,del=false){
-  const em=catEmoji(t.category);
-  const cn=catName(t.category);
+  // Si tiene subcategoría, mostrarla directamente con su emoji propio
+  const hasSub=t.subcategory&&t.subcategory.trim();
+  const em=catEmoji(hasSub?t.subcategory:t.category);
+  const displayName=hasSub?catName(t.subcategory):catName(t.category);
   const col=personColor(t.person);
   const pn=personName(t.person);
   const df=new Date(t.date+'T12:00:00').toLocaleDateString('es-AR',{day:'numeric',month:'short'});
@@ -1789,7 +1793,7 @@ function txItem(t,del=false){
   return`<div class="txitem" onclick="openEditTx('${t.id}')" style="cursor:pointer">
     <div class="txicon" style="background:${col}22;color:${col}">${em}</div>
     <div class="txinfo">
-      <div class="cat">${cn}${t.subcategory?' › '+t.subcategory:''}${mpBadge}</div>
+      <div class="cat">${displayName}${mpBadge}</div>
       <div class="sub">${pn}${t.note?' · '+t.note:''} · ${df}</div>
     </div>
     <div class="txamt">
@@ -1804,7 +1808,7 @@ function txItem(t,del=false){
 function renderRep(){
   const g=getMTx().filter(t=>t.type==='gasto');
   const empty='<div class="empty" style="width:100%"><div class="ei">📊</div><p>Sin gastos este mes</p></div>';
-  if(!g.length){['donutCon','catBar','pBreak','inflaCon','usdBreak'].forEach(id=>document.getElementById(id).innerHTML=empty);return}
+  if(!g.length){['donutCon','catBar','subCatBar','pBreak','inflaCon','usdBreak'].forEach(id=>document.getElementById(id).innerHTML=empty);return}
 
   const ct={};g.forEach(t=>{ct[t.category]=(ct[t.category]||0)+t.amount});
   const sorted=Object.entries(ct).sort((a,b)=>b[1]-a[1]);
@@ -1833,6 +1837,24 @@ function renderRep(){
     const col=CCOLORS[ckeys.findIndex(k=>k===cat)%CCOLORS.length]||CCOLORS[i%CCOLORS.length];
     return`<div class="bitem"><span class="blabel">${catName(cat)}</span><div class="btrack"><div class="bfill" style="width:${Math.round(val/mx*100)}%;background:${col}"></div></div><span class="bval">${fARS(val)}</span></div>`;
   }).join('')+'</div>';
+
+  // Subcategory bar chart
+  const sct={};g.forEach(t=>{
+    if(!t.subcategory||!t.subcategory.trim())return;
+    const k=catName(t.subcategory);
+    sct[k]=(sct[k]||0)+t.amount;
+  });
+  const sortedSub=Object.entries(sct).sort((a,b)=>b[1]-a[1]);
+  const subEl=document.getElementById('subCatBar');
+  if(!sortedSub.length){
+    subEl.innerHTML='<div style="font-size:.8rem;color:var(--text-light);padding:6px 0">Editá transacciones y asigná subcategorías para ver este detalle.</div>';
+  }else{
+    const mxSub=sortedSub[0][1];
+    subEl.innerHTML='<div class="bchart">'+sortedSub.map(([k,v],i)=>{
+      const col=CCOLORS[i%CCOLORS.length];
+      return`<div class="bitem"><span class="blabel">${k}</span><div class="btrack"><div class="bfill" style="width:${Math.round(v/mxSub*100)}%;background:${col}"></div></div><span class="bval">${fARS(v)}</span></div>`;
+    }).join('')+'</div>';
+  }
 
   // Person breakdown
   const ps=[...people.map((p,i)=>({k:p.id,l:p.name,c:PERSON_COLORS[i]||'#64748b'})),{k:'compartido',l:'Compartido',c:'#f59e0b'}];
