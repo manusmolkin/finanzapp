@@ -2028,7 +2028,7 @@ async function saveEditTx(){
     const cb=document.getElementById('editMerchantCb');
     if(mKey){
       if(!sett.merchantRules)sett.merchantRules={};
-      if(cb.checked){sett.merchantRules[mKey.toLowerCase()]=newCat;}
+      if(cb.checked){sett.merchantRules[mKey.toLowerCase()]={cat:newCat,sub:newSub||''};}
       else{delete sett.merchantRules[mKey.toLowerCase()];}
       localStorage.setItem('fa_sett',JSON.stringify(sett));
       sbSaveSett();
@@ -2050,9 +2050,13 @@ async function applyMerchantRules(newTxs){
     const mKey=extractMerchantKey(t.note||'');
     if(!mKey)continue;
     const rule=rules[mKey.toLowerCase()];
-    if(rule&&rule!==t.category){
-      t.category=rule;
-      try{await sb.from('transactions').update({category:rule}).eq('id',t.id);}catch(e){}
+    if(!rule)continue;
+    const ruleCat=typeof rule==='object'?rule.cat:rule;
+    const ruleSub=typeof rule==='object'?(rule.sub||''):'';
+    if(ruleCat&&(ruleCat!==t.category||ruleSub!==t.subcategory)){
+      t.category=ruleCat;
+      t.subcategory=ruleSub;
+      try{await sb.from('transactions').update({category:ruleCat,subcategory:ruleSub||null}).eq('id',t.id);}catch(e){}
     }
   }
   localStorage.setItem('fa_tx',JSON.stringify(txs));
